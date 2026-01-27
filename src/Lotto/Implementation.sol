@@ -17,8 +17,10 @@ contract LottoImplementation is Initializable, ReentrancyGuard {
     error Lotto__IsNotClosed();
     error Lotto__InsufficientEntryFee();
     error Lotto__NotAllPlayersJoined();
+    error Lotto__LottoIsFull();
     error Lotto__OnlyFactoryCanFulfill();
     error Lotto__TransferFailed();
+    error Lotto__RefundFailed();
     error Lotto__YouAreNotWinner();
 
     enum LottoState {
@@ -39,6 +41,7 @@ contract LottoImplementation is Initializable, ReentrancyGuard {
     event PlayerJoined(address indexed player, uint256 playerCount);
     event WinnerRequested();
     event WinnerPicked(address indexed winner, uint256 prize);
+    event PrizeWithdrawn(address indexed winner, uint256 amount);
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -62,13 +65,18 @@ contract LottoImplementation is Initializable, ReentrancyGuard {
     function joinLotto() external payable {
         if (lottoState != LottoState.OPEN) revert Lotto__IsNotOpen();
         if (msg.value < entryFee) revert Lotto__InsufficientEntryFee();
+        if (players.length >= maxPlayers) revert Lotto__LottoIsFull();
+        if (msg.value > entryFee) {
+            (bool success,) = payable(msg.sender).call{value: msg.value - entryFee}("");
+            if (!success) revert Lotto__RefundFailed();
+        }
 
         players.push(msg.sender);
 
         emit PlayerJoined(msg.sender, players.length);
 
         // Automatically change state to CALCULATING when max players reached
-        if (players.length >= maxPlayers) {
+        if (players.length == maxPlayers) {
             lottoState = LottoState.CALCULATING;
         }
     }
@@ -107,14 +115,16 @@ contract LottoImplementation is Initializable, ReentrancyGuard {
     }
 
     /**
-     * @notice Function for the winner to withdraw their rewards
+     * @notice Function for the winner to withdraw their Prize
      */
-    function withdrawRewards() external nonReentrant {
+    function withdrawPrize() external nonReentrant {
         if (lottoState != LottoState.CLOSED) revert Lotto__IsNotClosed();
         if (msg.sender != winner) revert Lotto__YouAreNotWinner(); // Additional logic can be added to ensure only the winner can call this
         uint256 amount = address(this).balance;
         (bool success,) = payable(winner).call{value: amount}("");
         if (!success) revert Lotto__TransferFailed();
+
+        emit PrizeWithdrawn(winner, amount);
     }
 
     // --- Getter functions ---

@@ -114,5 +114,15 @@ contract LottoFactory is VRFConsumerBaseV2Plus {
         s_keyHash = _keyHash;
         s_callbackGasLimit = _callbackGasLimit;
     }
+
+    // --- Getter functions ---
+
+    function getAllLottos() external view returns (address[] memory) {
+        return allLottos;
+    }
+
+    function getLengthOfAllLottos() external view returns (uint256) {
+        return allLottos.length;
+    }
 }
 
