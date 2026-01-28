@@ -115,6 +115,12 @@ contract LottoFactory is VRFConsumerBaseV2Plus {
         s_callbackGasLimit = _callbackGasLimit;
     }
 
+    // We have to check
+    // 4. No Protection Against Stale Requests (Medium Priority)
+    // If a randomness request gets lost in VRF, the lotto is stuck in CALCULATING state forever.
+
+    // Recommendation: Add a timeout mechanism or admin recovery function:
+
     // --- Getter functions ---
 
     function getAllLottos() external view returns (address[] memory) {

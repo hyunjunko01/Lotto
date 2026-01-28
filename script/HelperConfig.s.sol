@@ -2,6 +2,7 @@
 pragma solidity ^0.8.24;
 
 import {Script} from "forge-std/Script.sol";
+import {EntryPoint} from "@account-abstraction/contracts/core/EntryPoint.sol";
 import {VRFCoordinatorV2_5Mock} from "@chainlink/contracts/src/v0.8/vrf/mocks/VRFCoordinatorV2_5Mock.sol";
 
 contract HelperConfig is Script {
@@ -11,6 +12,7 @@ contract HelperConfig is Script {
         uint256 subscriptionId;
         uint32 callbackGasLimit;
         address account; // deployer account address
+        address entryPoint; // account entry point address
     }
 
     NetworkConfig public activeNetworkConfig;
@@ -35,7 +37,8 @@ contract HelperConfig is Script {
             keyHash: 0x787d74caea10b2b357790d5b5247c2f63d1d91572a9846f780606e4d953677ae,
             subscriptionId: 0, // For actual deployment, input your own subId or create it via script
             callbackGasLimit: 500000,
-            account: 0x47E930168F6359550302526Ea0800C3A0b3c8ee6 // example deployer address
+            account: 0x47E930168F6359550302526Ea0800C3A0b3c8ee6, // example deployer address
+            entryPoint: 0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789 // example entry point address
         });
     }
 
@@ -54,6 +57,7 @@ contract HelperConfig is Script {
         // Subscription creation and funding automation
         uint256 subId = vrfMock.createSubscription();
         vrfMock.fundSubscription(subId, 100 ether);
+        EntryPoint entryPoint = new EntryPoint(); // Deploy a new EntryPoint for local testing
         vm.stopBroadcast();
 
         return NetworkConfig({
@@ -61,7 +65,8 @@ contract HelperConfig is Script {
             keyHash: 0x474e34a077df58807dbe9c96d3c009b23b3c6d0cce433e59bbf5b34f823bc56c, // arbitrary value
             subscriptionId: subId,
             callbackGasLimit: 500000,
-            account: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 // Anvil default address
+            account: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266, // Anvil default address
+            entryPoint: address(entryPoint) // example entry point address
         });
     }
 }

@@ -128,7 +128,7 @@ contract LottoImplementation is Initializable, ReentrancyGuard {
     }
 
     // --- Getter functions ---
-    function getBalance() external view returns (uint256) {
+    function getLottoBalance() external view returns (uint256) {
         return address(this).balance;
     }
 }

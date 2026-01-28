@@ -27,7 +27,7 @@ contract LottoSystemTest is Test {
             address(vrfCoordinator),
             subId,
             0x474e34a077df58807dbe9c96d3c009b23b3c6d0cce433e59bbf5b34f823bc56c, // arbitrary keyhash
-            500000
+            500000 // callback gas limit
         );
         vrfCoordinator.addConsumer(subId, address(factory));
     }

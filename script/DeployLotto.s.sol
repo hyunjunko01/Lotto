@@ -12,7 +12,7 @@ contract DeployLotto is Script {
     function run() external returns (LottoFactory, HelperConfig) {
         HelperConfig helperConfig = new HelperConfig();
 
-        (address vrfCoordinator, bytes32 keyHash, uint256 subscriptionId, uint32 callbackGasLimit, address account) =
+        (address vrfCoordinator, bytes32 keyHash, uint256 subscriptionId, uint32 callbackGasLimit, address account,) =
             helperConfig.activeNetworkConfig();
 
         vm.startBroadcast(account);

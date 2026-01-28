@@ -27,7 +27,7 @@ contract ImplementationTest is Test {
             address(vrfCoordinator),
             subId,
             0x474e34a077df58807dbe9c96d3c009b23b3c6d0cce433e59bbf5b34f823bc56c, // arbitrary keyhash
-            500000
+            500000 // callback gas limit
         );
         vrfCoordinator.addConsumer(subId, address(factory));
     }
@@ -43,7 +43,7 @@ contract ImplementationTest is Test {
     }
 
     function testCannotInitializeTwice() external {
-        address cloneAddr = factory.createLotto(0.01 ether, 5);
+        address cloneAddr = factory.createLotto(0.01 ether, 5); // createLotto function calls initialize
         LottoImplementation clone = LottoImplementation(cloneAddr);
 
         vm.expectRevert("InvalidInitialization()");
@@ -52,7 +52,7 @@ contract ImplementationTest is Test {
 
     function testCannotInitializeImplementationDirectly() external {
         vm.expectRevert("InvalidInitialization()");
-        impl.initialize(0.01 ether, 5, address(factory));
+        impl.initialize(0.01 ether, 5, address(factory)); // prevented by initializer modifier
     }
 
     function testJoinLotto() external {
