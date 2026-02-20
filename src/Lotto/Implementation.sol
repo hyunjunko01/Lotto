@@ -6,9 +6,11 @@ import {Initializable} from "@openzeppelin/contracts/proxy/utils/Initializable.s
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 /**
- * @title LottoImplementation
- * @dev Contract that is cloned by the factory and performs the actual lotto logic
+ * @title Lotto Implementation (logic contract)
  * @author Tyler Ko
+ * @notice This contract contains the core logic for the Lotto game.
+ * @dev This contract is designed to be used with the EIP-1167 minimal proxy pattern.
+ * Each Lotto instance by factory is a proxy that delegates calls to this implementation contract.
  */
 contract LottoImplementation is Initializable, ReentrancyGuard {
     // --- error ---
@@ -43,13 +45,16 @@ contract LottoImplementation is Initializable, ReentrancyGuard {
     event WinnerPicked(address indexed winner, uint256 prize);
     event PrizeWithdrawn(address indexed winner, uint256 amount);
 
-    /// @custom:oz-upgrades-unsafe-allow constructor
+    // --- constructor ---
     constructor() {
         _disableInitializers(); // Prevent the implementation contract from being initialized directly
     }
 
+    // --- external functions ---
     /**
      * @notice Initialization function replacing the constructor
+     * It only affects the storage of the calling subject.
+     * So each lotto instance gets its own storage.
      * @dev Called by the factory immediately after Clones.clone()
      */
     function initialize(uint256 _entryFee, uint256 _maxPlayers, address _factory) external initializer {

@@ -1,66 +1,18 @@
-## Foundry
+# Lotto-AA
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+A scalable Web3 lottery application designed for seamless user experience.
 
-Foundry consists of:
+## 🏗 Contracts
 
-- **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
-- **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
-- **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
-- **Chisel**: Fast, utilitarian, and verbose solidity REPL.
+### Core Logic
+- Leverages **Chainlink VRF** for verifiable, tamper-proof randomness to ensure fair winner selection.
 
-## Documentation
+### Architecture
+Implemented using the **Factory-Clone Pattern** for maximum efficiency.
 
-https://book.getfoundry.sh/
+- **LottoFactory**: Manages the lifecycle of lottery instances and serves as the central gateway for Chainlink VRF requests.
+- **LottoImplementation**: Contains the core game logic. Deployed as a **Minimal Proxy (EIP-1167)** to ensure high scalability and minimize deployment gas costs.
 
-## Usage
+## 🛡 Account Abstraction (AA)
+- Integrates **Account Abstraction (ERC-4337)** to lower the barrier to entry, providing a Web2-like UX (e.g., gasless transactions, social login) for Web3 newcomers.
 
-### Build
-
-```shell
-$ forge build
-```
-
-### Test
-
-```shell
-$ forge test
-```
-
-### Format
-
-```shell
-$ forge fmt
-```
-
-### Gas Snapshots
-
-```shell
-$ forge snapshot
-```
-
-### Anvil
-
-```shell
-$ anvil
-```
-
-### Deploy
-
-```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
-```
-
-### Cast
-
-```shell
-$ cast <subcommand>
-```
-
-### Help
-
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
-```

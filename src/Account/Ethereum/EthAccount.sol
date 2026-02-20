@@ -32,8 +32,9 @@ contract EthAccount is IAccount, Ownable {
     /**
      * @dev Constructor that sets the entry point contract and initializes the owner(msg.sender).
      * @param entryPoint The address of the entry point contract.
+     * @param owner The address of the account owner.
      */
-    constructor(address entryPoint) Ownable(msg.sender) {
+    constructor(address entryPoint, address owner) Ownable(owner) {
         i_entryPoint = IEntryPoint(entryPoint);
     }
 
