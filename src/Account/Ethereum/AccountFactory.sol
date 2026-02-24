@@ -8,7 +8,7 @@ import {Create2} from "@openzeppelin/contracts/utils/Create2.sol";
 /**
  * @title AccountFactory
  * @dev Factory contract for creating Ethereum abstract accounts
- * @author Tyler Ko
+ * @author HyunJun Ko
  */
 
 contract AccountFactory {

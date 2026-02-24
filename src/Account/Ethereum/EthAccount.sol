@@ -13,7 +13,7 @@ import {SIG_VALIDATION_FAILED, SIG_VALIDATION_SUCCESS} from "@account-abstractio
 /**
  * @title EthAccount
  * @dev A simple implementation of an Ethereum abstract account that is ownable
- * @author Tyler Ko
+ * @author HyunJun Ko
  */
 
 contract EthAccount is IAccount, Ownable {

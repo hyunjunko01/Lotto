@@ -10,7 +10,7 @@ import {VRFV2PlusClient} from "@chainlink/contracts/src/v0.8/vrf/dev/libraries/V
 /**
  * @title LottoFactory
  * @dev contract that creates and manages Lotto instances with Chainlink VRF integration
- * @author Tyler Ko
+ * @author HyunJun Ko
  */
 contract LottoFactory is VRFConsumerBaseV2Plus {
     // --- error ---
@@ -72,11 +72,12 @@ contract LottoFactory is VRFConsumerBaseV2Plus {
 
     /**
      * @notice Step 2: Receive randomness request from Lotto instance
-     * Only Lotto instances created by the factory can call this function.
+     * @dev Only Lotto instances created by the factory can call this function.
      */
     function requestWinnerRandomness() external returns (uint256 requestId) {
         if (!isLottoInstance[msg.sender]) revert LottoFactory__OnlyLottoInstanceCanRequest();
 
+        // 1. Request randomness from Chainlink VRF
         requestId = s_vrfCoordinator.requestRandomWords(
             VRFV2PlusClient.RandomWordsRequest({
                 keyHash: s_keyHash,
@@ -88,12 +89,14 @@ contract LottoFactory is VRFConsumerBaseV2Plus {
             })
         );
 
+        // 2. Map requestId to the calling Lotto instance
         s_requestIdToLotto[requestId] = msg.sender;
         emit RandomnessRequested(requestId, msg.sender);
     }
 
     /**
      * @notice Step 3: Receive randomness from Chainlink and forward to individual Lotto instance
+     * @dev This function is called by the VRF coordinator after the randomness is generated. It looks up which Lotto instance made the request and calls its finalizeWinner function with the randomness.
      */
     function fulfillRandomWords(uint256 requestId, uint256[] calldata randomWords) internal override {
         address lottoAddress = s_requestIdToLotto[requestId];
