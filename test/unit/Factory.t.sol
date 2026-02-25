@@ -62,12 +62,6 @@ contract FactoryTest is Test {
         assertEq(factory.getLengthOfAllLottos(), 2);
     }
 
-    function testRevertWhenNonOwnerSetsVrfConfig() public {
-        vm.prank(user1);
-        vm.expectRevert();
-        factory.setVrfConfig(2, 0x474e34a077df58807dbe9c96d3c009b23b3c6d0cce433e59bbf5b34f823bc57b, 1000000);
-    }
-
     function testFulfillRandomWordsRoutesToCorrectLotto() public {
         address cloneAddr = factory.createLotto(0.01 ether, 2);
         LottoImplementation clone = LottoImplementation(cloneAddr);

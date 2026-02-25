@@ -27,12 +27,10 @@ contract AccountFactory {
     function createAccount(address owner, uint256 salt) external returns (EthAccount) {
         address addr = getAddress(owner, salt);
         uint256 codeSize = addr.code.length;
-
         // If the account already exists, return the existing instance
         if (codeSize > 0) {
             return EthAccount(payable(addr));
         }
-
         return new EthAccount{salt: bytes32(salt)}(i_entrypoint, owner);
     }
 

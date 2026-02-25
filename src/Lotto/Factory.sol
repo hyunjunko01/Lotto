@@ -9,8 +9,8 @@ import {VRFV2PlusClient} from "@chainlink/contracts/src/v0.8/vrf/dev/libraries/V
 
 /**
  * @title LottoFactory
- * @dev contract that creates and manages Lotto instances with Chainlink VRF integration
  * @author HyunJun Ko
+ * @notice contract that creates and manages Lotto instances with Chainlink VRF integration
  */
 contract LottoFactory is VRFConsumerBaseV2Plus {
     // --- error ---
@@ -109,13 +109,6 @@ contract LottoFactory is VRFConsumerBaseV2Plus {
 
         emit RandomnessFulfilled(requestId, randomness);
         delete s_requestIdToLotto[requestId]; // Delete mapping to save gas
-    }
-
-    // --- Admin-only functions ---
-    function setVrfConfig(uint256 _subId, bytes32 _keyHash, uint32 _callbackGasLimit) external onlyOwner {
-        s_subscriptionId = _subId;
-        s_keyHash = _keyHash;
-        s_callbackGasLimit = _callbackGasLimit;
     }
 
     // We have to check

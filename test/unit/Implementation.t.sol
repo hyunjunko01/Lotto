@@ -7,21 +7,35 @@ import {LottoFactory} from "../../src/Lotto/Factory.sol";
 import {LottoImplementation} from "../../src/Lotto/Implementation.sol";
 import {VRFCoordinatorV2_5Mock} from "@chainlink/contracts/src/v0.8/vrf/mocks/VRFCoordinatorV2_5Mock.sol";
 
+/**
+ * @title ImplementationTest
+ * @author HyunJun Ko
+ * @notice Unit tests for the LottoImplementation contract
+ * @dev This test suite focuses on validating the core logic and state transitions of the LottoImplementation.
+ * @dev We utilize a Mock VRF Coordinator to simulate the randomness fulfillment process.
+ * @dev Using a mock is preferred over a real coordinator (or forking) to ensure faster execution cycles and strict determinism in test outcomes.
+ */
 contract ImplementationTest is Test {
     LottoImplementation impl;
     LottoFactory factory;
-    VRFCoordinatorV2_5Mock vrfCoordinator;
+    VRFCoordinatorV2_5Mock vrfCoordinator; // Mock VRF coordinator for testing
 
+    // virtual users for testing
     address user1 = makeAddr("user1");
     address user2 = makeAddr("user2");
     address user3 = makeAddr("user3");
 
+    /**
+     * @notice Set up the test environment by deploying the mock VRF coordinator,.
+     * @dev Factory contract is ultimately intended for actual contracts and operate only according to the specified code.
+     * @dev Therefore, even in the case of mocks, we must set the necessary settings, just as we would when using an actual coordinator.
+     */
     function setUp() public {
         vrfCoordinator = new VRFCoordinatorV2_5Mock(0.1 ether, 1e9, 1e18);
         uint256 subId = vrfCoordinator.createSubscription();
         vrfCoordinator.fundSubscription(subId, 10 ether);
 
-        impl = new LottoImplementation();
+        impl = new LottoImplementation(); // After deploying the implementation, we cannot call initialize function directly.
         factory = new LottoFactory(
             address(impl),
             address(vrfCoordinator),
@@ -32,9 +46,10 @@ contract ImplementationTest is Test {
         vrfCoordinator.addConsumer(subId, address(factory));
     }
 
+    // --- Initialization tests ---
     function testInitialize() external {
         address cloneAddr = factory.createLotto(0.01 ether, 5);
-        LottoImplementation clone = LottoImplementation(cloneAddr);
+        LottoImplementation clone = LottoImplementation(cloneAddr); // typecasting to interact with the clone's functions
 
         assertEq(clone.entryFee(), 0.01 ether);
         assertEq(clone.maxPlayers(), 5);
@@ -47,7 +62,7 @@ contract ImplementationTest is Test {
         LottoImplementation clone = LottoImplementation(cloneAddr);
 
         vm.expectRevert("InvalidInitialization()");
-        clone.initialize(0.02 ether, 10, address(factory));
+        clone.initialize(0.02 ether, 10, address(factory)); // should revert due to initializer modifier preventing re-initialization
     }
 
     function testCannotInitializeImplementationDirectly() external {
@@ -55,6 +70,7 @@ contract ImplementationTest is Test {
         impl.initialize(0.01 ether, 5, address(factory)); // prevented by initializer modifier
     }
 
+    // --- Join Lotto tests ---
     function testJoinLotto() external {
         address cloneAddr = factory.createLotto(0.01 ether, 2);
         LottoImplementation clone = LottoImplementation(cloneAddr);
@@ -90,6 +106,7 @@ contract ImplementationTest is Test {
         clone.joinLotto{value: 0.01 ether}();
     }
 
+    // --- Finalize Winner tests ---
     function testFinalizeWinner() external {
         address cloneAddr = factory.createLotto(0.01 ether, 3);
         LottoImplementation clone = LottoImplementation(cloneAddr);
@@ -152,6 +169,7 @@ contract ImplementationTest is Test {
         clone.finalizeWinner(fakeRandomness);
     }
 
+    // --- Withdraw Prize tests ---
     function testWithdrawPrize() external {
         address cloneAddr = factory.createLotto(0.01 ether, 3);
         LottoImplementation clone = LottoImplementation(cloneAddr);

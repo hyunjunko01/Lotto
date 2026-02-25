@@ -13,12 +13,4 @@ import {EthAccount} from "../src/Account/Ethereum/EthAccount.sol";
 
 contract DeployEthAccount is Script {
     function run() public {}
-
-    function deployEthAccount() public returns (HelperConfig, EthAccount) {
-        HelperConfig helperConfig = new HelperConfig();
-        (,,,, address account, address entryPoint) = helperConfig.activeNetworkConfig();
-        EthAccount ethAccount = new EthAccount(entryPoint);
-        ethAccount.transferOwnership(account);
-        return (helperConfig, ethAccount);
-    }
 }

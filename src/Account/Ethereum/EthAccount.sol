@@ -17,14 +17,14 @@ import {SIG_VALIDATION_FAILED, SIG_VALIDATION_SUCCESS} from "@account-abstractio
  */
 
 contract EthAccount is IAccount, Ownable {
-    error MinimalAccount__NotFromEntryPointOrOwner();
-    error MinimalAccount__CallFailed(bytes);
+    error EthAccount__NotFromEntryPointOrOwner();
+    error EthAccount__CallFailed(bytes);
 
     IEntryPoint private immutable i_entryPoint;
 
     modifier requireFromEntryPointOrOwner() {
         if (msg.sender != address(i_entryPoint) && msg.sender != owner()) {
-            revert MinimalAccount__NotFromEntryPointOrOwner();
+            revert EthAccount__NotFromEntryPointOrOwner();
         }
         _;
     }
@@ -37,14 +37,13 @@ contract EthAccount is IAccount, Ownable {
     constructor(address entryPoint, address owner) Ownable(owner) {
         i_entryPoint = IEntryPoint(entryPoint);
     }
-
     // Allow the contract to receive ether
     receive() external payable {}
 
     function execute(address dest, uint256 value, bytes calldata functionData) external requireFromEntryPointOrOwner {
         (bool success, bytes memory result) = dest.call{value: value}(functionData);
         if (!success) {
-            revert MinimalAccount__CallFailed(result);
+            revert EthAccount__CallFailed(result);
         }
     }
 
@@ -72,10 +71,8 @@ contract EthAccount is IAccount, Ownable {
     {
         // change the format to fit the ECDSA recover function
         bytes32 ethSignedMessageHash = MessageHashUtils.toEthSignedMessageHash(userOpHash);
-
         // recover the signer address
         address signer = ECDSA.recover(ethSignedMessageHash, userOp.signature);
-
         // if the signer is not the owner, return failure
         if (signer != owner()) {
             return SIG_VALIDATION_FAILED;
