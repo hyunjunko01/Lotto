@@ -2,8 +2,8 @@
 
 pragma solidity ^0.8.24;
 
-import {EthAccount} from "./EthAccount.sol";
-import {Create2} from "@openzeppelin/contracts/utils/Create2.sol";
+import {IEthAccount} from "./Interface/IEthAccount.sol";
+import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
 
 /**
  * @title AccountFactory
@@ -12,26 +12,29 @@ import {Create2} from "@openzeppelin/contracts/utils/Create2.sol";
  */
 
 contract AccountFactory {
-    address public immutable i_entrypoint;
+    address public immutable i_accountImplementation;
 
-    constructor(address entrypoint) {
-        i_entrypoint = entrypoint;
+    constructor(address accountImplementation) {
+        i_accountImplementation = accountImplementation;
     }
 
     /**
      * @dev Creates a new EthAccount for the specified owner using CREATE2 for deterministic address generation.
      * @param owner The address of the account owner.
      * @param salt A unique salt value to ensure unique account addresses.
-     * @return EthAccount newly created EthAccount instance.
+     * @return address The address of the newly created EthAccount instance.
      */
-    function createAccount(address owner, uint256 salt) external returns (EthAccount) {
-        address addr = getAddress(owner, salt);
+    function createAccount(address owner, uint256 salt) external returns (address) {
+        bytes32 finalSalt = keccak256(abi.encode(owner, salt));
+        address addr = Clones.predictDeterministicAddress(i_accountImplementation, finalSalt, address(this));
         uint256 codeSize = addr.code.length;
+
         // If the account already exists, return the existing instance
-        if (codeSize > 0) {
-            return EthAccount(payable(addr));
-        }
-        return new EthAccount{salt: bytes32(salt)}(i_entrypoint, owner);
+        if (codeSize > 0) return addr;
+
+        address clone = Clones.cloneDeterministic(i_accountImplementation, finalSalt);
+        IEthAccount(clone).initialize(owner);
+        return clone;
     }
 
     /**
@@ -41,8 +44,7 @@ contract AccountFactory {
      * @return address The computed address of the EthAccount.
      */
     function getAddress(address owner, uint256 salt) public view returns (address) {
-        return Create2.computeAddress(
-            bytes32(salt), keccak256(abi.encodePacked(type(EthAccount).creationCode, abi.encode(i_entrypoint, owner)))
-        );
+        bytes32 finalSalt = keccak256(abi.encode(owner, salt));
+        return Clones.predictDeterministicAddress(i_accountImplementation, finalSalt, address(this));
     }
 }

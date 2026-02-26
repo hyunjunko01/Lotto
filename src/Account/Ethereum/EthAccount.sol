@@ -3,6 +3,7 @@
 pragma solidity ^0.8.24;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {Initializable} from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import {IAccount} from "@account-abstraction/contracts/interfaces/IAccount.sol";
@@ -16,7 +17,7 @@ import {SIG_VALIDATION_FAILED, SIG_VALIDATION_SUCCESS} from "@account-abstractio
  * @author HyunJun Ko
  */
 
-contract EthAccount is IAccount, Ownable {
+contract EthAccount is IAccount, Initializable, Ownable {
     error EthAccount__NotFromEntryPointOrOwner();
     error EthAccount__CallFailed(bytes);
 
@@ -29,16 +30,20 @@ contract EthAccount is IAccount, Ownable {
         _;
     }
 
-    /**
-     * @dev Constructor that sets the entry point contract and initializes the owner(msg.sender).
-     * @param entryPoint The address of the entry point contract.
-     * @param owner The address of the account owner.
-     */
-    constructor(address entryPoint, address owner) Ownable(owner) {
+    // --- constructor ---
+    constructor(address entryPoint) Ownable(msg.sender) {
         i_entryPoint = IEntryPoint(entryPoint);
+        _disableInitializers(); // Prevent the implementation contract from being initialized directly
     }
+
+    // --- external functions ---
+
     // Allow the contract to receive ether
     receive() external payable {}
+
+    function initialize(address owner) external initializer {
+        _transferOwnership(owner);
+    }
 
     function execute(address dest, uint256 value, bytes calldata functionData) external requireFromEntryPointOrOwner {
         (bool success, bytes memory result) = dest.call{value: value}(functionData);
@@ -60,7 +65,7 @@ contract EthAccount is IAccount, Ownable {
         requireFromEntryPointOrOwner
         returns (uint256 validationData)
     {
-        _validateSignature(userOp, userOpHash);
+        validationData = _validateSignature(userOp, userOpHash);
         _payPrefund(missingAccountFunds);
     }
 
@@ -76,8 +81,9 @@ contract EthAccount is IAccount, Ownable {
         // if the signer is not the owner, return failure
         if (signer != owner()) {
             return SIG_VALIDATION_FAILED;
+        } else {
+            return SIG_VALIDATION_SUCCESS;
         }
-        return SIG_VALIDATION_SUCCESS;
     }
 
     /**
