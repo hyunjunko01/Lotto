@@ -19,10 +19,10 @@ contract AccountFactory {
     }
 
     /**
-     * @dev Creates a new EthAccount for the specified owner using CREATE2 for deterministic address generation.
+     * @dev Creates a new EthAccount for the specified owner using the minimal proxy pattern (EIP-1167).
      * @param owner The address of the account owner.
      * @param salt A unique salt value to ensure unique account addresses.
-     * @return address The address of the newly created EthAccount instance.
+     * @return address The address of the newly created EthAccount proxy instance.
      */
     function createAccount(address owner, uint256 salt) external returns (address) {
         bytes32 finalSalt = keccak256(abi.encode(owner, salt));
@@ -39,6 +39,7 @@ contract AccountFactory {
 
     /**
      * @dev Computes the address of an EthAccount for the specified owner and salt in off-chain (front-end).
+     * @dev This function can be used to predict the address of an EthAccount before it is created, allowing users to interact with the account even before deployment.
      * @param owner The address of the account owner.
      * @param salt A unique salt value to ensure unique account addresses.
      * @return address The computed address of the EthAccount.

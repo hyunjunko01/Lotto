@@ -31,8 +31,14 @@ contract EthAccount is IAccount, Initializable, Ownable {
     }
 
     // --- constructor ---
+
+    /**
+     * @dev Initializes the EthAccount with the specified entry point and sets the initial owner.
+     * @dev The owner will be changed to the caller of the initialize function.
+     * @param entryPoint The address of the entry point contract that will interact with this account
+     */
     constructor(address entryPoint) Ownable(msg.sender) {
-        i_entryPoint = IEntryPoint(entryPoint);
+        i_entryPoint = IEntryPoint(entryPoint); // set in bytecode
         _disableInitializers(); // Prevent the implementation contract from being initialized directly
     }
 
@@ -41,6 +47,10 @@ contract EthAccount is IAccount, Initializable, Ownable {
     // Allow the contract to receive ether
     receive() external payable {}
 
+    /**
+     * @dev Initializes the EthAccount with the specified owner.
+     * @param owner The address of the owner of this account
+     */
     function initialize(address owner) external initializer {
         _transferOwnership(owner);
     }
@@ -69,6 +79,9 @@ contract EthAccount is IAccount, Initializable, Ownable {
         _payPrefund(missingAccountFunds);
     }
 
+    /**
+     * @dev Validates the signature of a user operation by recovering the signer address and comparing it to the owner.
+     */
     function _validateSignature(PackedUserOperation calldata userOp, bytes32 userOpHash)
         internal
         view
