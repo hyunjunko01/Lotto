@@ -18,10 +18,18 @@ import {SIG_VALIDATION_FAILED, SIG_VALIDATION_SUCCESS} from "@account-abstractio
  */
 
 contract EthAccount is IAccount, Initializable, Ownable {
+    error EthAccount__NotFromEntryPoint();
     error EthAccount__NotFromEntryPointOrOwner();
     error EthAccount__CallFailed(bytes);
 
-    IEntryPoint private immutable i_entryPoint;
+    IEntryPoint public immutable i_entryPoint;
+
+    modifier requireFromEntryPoint() {
+        if (msg.sender != address(i_entryPoint)) {
+            revert EthAccount__NotFromEntryPoint();
+        }
+        _;
+    }
 
     modifier requireFromEntryPointOrOwner() {
         if (msg.sender != address(i_entryPoint) && msg.sender != owner()) {
@@ -72,7 +80,7 @@ contract EthAccount is IAccount, Initializable, Ownable {
     function validateUserOp(PackedUserOperation calldata userOp, bytes32 userOpHash, uint256 missingAccountFunds)
         external
         override
-        requireFromEntryPointOrOwner
+        requireFromEntryPoint
         returns (uint256 validationData)
     {
         validationData = _validateSignature(userOp, userOpHash);

@@ -15,19 +15,23 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 contract LottoImplementation is Initializable, ReentrancyGuard {
     // --- error ---
     error Lotto__IsNotOpen();
+    error Lotto__IsFull();
+    error Lotto__IsNotFull();
     error Lotto__IsNotCalculating();
     error Lotto__IsNotClosed();
     error Lotto__InsufficientEntryFee();
     error Lotto__NotAllPlayersJoined();
-    error Lotto__LottoIsFull();
     error Lotto__OnlyFactoryCanFulfill();
     error Lotto__TransferFailed();
     error Lotto__RefundFailed();
     error Lotto__YouAreNotWinner();
+    error Lotto__AlreadyRequested();
+    error Lotto__AlreadyWithdrawn();
 
     // --- enum ---
     enum LottoState {
         OPEN,
+        FULL,
         CALCULATING,
         CLOSED
     }
@@ -38,6 +42,8 @@ contract LottoImplementation is Initializable, ReentrancyGuard {
     address[] public players;
     address public winner;
     address public factory; // address of the factory that will provide randomness
+    bool public isRandomnessRequested;
+    bool public isPrizeWithdrawn;
     LottoState public lottoState;
 
     // --- events ---
@@ -67,26 +73,29 @@ contract LottoImplementation is Initializable, ReentrancyGuard {
 
     /**
      * @notice Function for joining the lotto
-     * @dev Players can join by sending the entry fee. The lotto automatically transitions to CALCULATING state when max players are reached.
+     * @dev Players can join by sending the entry fee. The lotto automatically transitions to FULL state when max players are reached.
      * @dev If a player sends more than the entry fee, the excess amount will be refunded.
      */
     function joinLotto() external payable {
+        // Checks
+        if (lottoState == LottoState.FULL) revert Lotto__IsFull();
         if (lottoState != LottoState.OPEN) revert Lotto__IsNotOpen();
         if (msg.value < entryFee) revert Lotto__InsufficientEntryFee();
-        if (players.length >= maxPlayers) revert Lotto__LottoIsFull();
+
+        // Effects
+        players.push(msg.sender);
+        // Automatically change state to FULL when max players reached
+        if (players.length == maxPlayers) {
+            lottoState = LottoState.FULL;
+        }
+
+        // Interactions
         if (msg.value > entryFee) {
             (bool success,) = payable(msg.sender).call{value: msg.value - entryFee}("");
             if (!success) revert Lotto__RefundFailed();
         }
 
-        players.push(msg.sender);
-
         emit PlayerJoined(msg.sender, players.length);
-
-        // Automatically change state to CALCULATING when max players reached
-        if (players.length == maxPlayers) {
-            lottoState = LottoState.CALCULATING;
-        }
     }
 
     /**
@@ -95,9 +104,15 @@ contract LottoImplementation is Initializable, ReentrancyGuard {
      * @dev If we don't interact with factory, we should adminster chainlick VRF directly in this contract, which would make the logic contract more complex.
      */
     function requestWinner() external {
-        if (lottoState != LottoState.CALCULATING) revert Lotto__IsNotCalculating();
-        if (players.length < maxPlayers) revert Lotto__NotAllPlayersJoined();
+        // Checks
+        if (lottoState != LottoState.FULL) revert Lotto__IsNotFull();
+        if (isRandomnessRequested) revert Lotto__AlreadyRequested(); // Prevent multiple requests
 
+        // Effects
+        lottoState = LottoState.CALCULATING;
+        isRandomnessRequested = true;
+
+        // Interactions
         // Request VRF randomness from the factory
         ILottoFactory(factory).requestWinnerRandomness();
 
@@ -114,12 +129,12 @@ contract LottoImplementation is Initializable, ReentrancyGuard {
         if (msg.sender != factory) revert Lotto__OnlyFactoryCanFulfill();
         if (lottoState != LottoState.CALCULATING) revert Lotto__IsNotCalculating();
 
+        lottoState = LottoState.CLOSED;
+
         // Winner selection logic (Modulo operation)
         // $WinnerIndex = randomness \pmod{maxPlayers}$
         uint256 winnerIndex = _randomness % maxPlayers;
         winner = players[winnerIndex];
-
-        lottoState = LottoState.CLOSED;
 
         uint256 prize = address(this).balance;
         emit WinnerPicked(winner, prize);
@@ -129,8 +144,15 @@ contract LottoImplementation is Initializable, ReentrancyGuard {
      * @notice Function for the winner to withdraw their Prize
      */
     function withdrawPrize() external nonReentrant {
+        // Checks
         if (lottoState != LottoState.CLOSED) revert Lotto__IsNotClosed();
         if (msg.sender != winner) revert Lotto__YouAreNotWinner(); // Additional logic can be added to ensure only the winner can call this
+        if (isPrizeWithdrawn) revert Lotto__AlreadyWithdrawn(); // Prevent double withdrawal
+
+        // Effects
+        isPrizeWithdrawn = true;
+
+        // Interactions
         uint256 amount = address(this).balance;
         (bool success,) = payable(winner).call{value: amount}("");
         if (!success) revert Lotto__TransferFailed();

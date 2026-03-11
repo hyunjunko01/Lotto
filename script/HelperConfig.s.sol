@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: MIT
+
 pragma solidity ^0.8.24;
 
 import {Script} from "forge-std/Script.sol";
@@ -11,16 +12,18 @@ contract HelperConfig is Script {
         bytes32 keyHash;
         uint256 subscriptionId;
         uint32 callbackGasLimit;
-        address account; // deployer account address
-        address entryPoint; // account entry point address
+        address account;
+        address entryPoint;
     }
 
     NetworkConfig public activeNetworkConfig;
 
-    // VRF Mock constants for V2.5
     uint96 constant MOCK_BASE_FEE = 0.1 ether;
     uint96 constant MOCK_GAS_PRICE_LINK = 1e9;
     int256 constant MOCK_WEI_PER_UNIT_LINK = 4e15;
+
+    // address constant FOUNDRY_DEFAULT_WALLET = 0x1804c8AB1F12E6bbf3894d4083f33e07309d1f38;
+    address constant ANVIL_DEFAULT_ACCOUNT = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
 
     constructor() {
         if (block.chainid == 11155111) {
@@ -30,7 +33,10 @@ contract HelperConfig is Script {
         }
     }
 
-    // 2. Sepolia (Ethereum Testnet) configuration
+    function getConfig() public view returns (NetworkConfig memory) {
+        return activeNetworkConfig;
+    }
+
     function getSepoliaConfig() public pure returns (NetworkConfig memory) {
         return NetworkConfig({
             vrfCoordinator: 0x9DdfaCa8183c41ad55329BdeeD9F6A8d53168B1B,
@@ -42,15 +48,14 @@ contract HelperConfig is Script {
         });
     }
 
-    // 3. Local Anvil environment configuration (deploy Mock if not present)
     function getOrCreateAnvilConfig() public returns (NetworkConfig memory) {
-        // If already configured (Mock deployed), return as is
+        // If already configured, return the existing one
         if (activeNetworkConfig.vrfCoordinator != address(0)) {
             return activeNetworkConfig;
         }
 
-        // 3-1. Deploy Mock for local environment
-        vm.startBroadcast();
+        // SubOwner must be the same as the account in NetworkConfig
+        vm.startBroadcast(ANVIL_DEFAULT_ACCOUNT);
         VRFCoordinatorV2_5Mock vrfMock =
             new VRFCoordinatorV2_5Mock(MOCK_BASE_FEE, MOCK_GAS_PRICE_LINK, MOCK_WEI_PER_UNIT_LINK);
 
@@ -65,7 +70,7 @@ contract HelperConfig is Script {
             keyHash: 0x474e34a077df58807dbe9c96d3c009b23b3c6d0cce433e59bbf5b34f823bc56c, // arbitrary value
             subscriptionId: subId,
             callbackGasLimit: 500000,
-            account: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266, // Anvil default address
+            account: ANVIL_DEFAULT_ACCOUNT, // Anvil default address
             entryPoint: address(entryPoint) // example entry point address
         });
     }

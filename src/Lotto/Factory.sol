@@ -96,7 +96,8 @@ contract LottoFactory is VRFConsumerBaseV2Plus {
 
     /**
      * @notice Step 3: Receive randomness from Chainlink and forward to individual Lotto instance
-     * @dev This function is called by the VRF coordinator after the randomness is generated. It looks up which Lotto instance made the request and calls its finalizeWinner function with the randomness.
+     * @dev This function is called by the VRF coordinator after the randomness is generated.
+     * @dev It looks up which Lotto instance made the request and calls its finalizeWinner function with the randomness.
      */
     function fulfillRandomWords(uint256 requestId, uint256[] calldata randomWords) internal override {
         address lottoAddress = s_requestIdToLotto[requestId];

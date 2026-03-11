@@ -3,54 +3,58 @@
 pragma solidity ^0.8.24;
 
 import {Test} from "forge-std/Test.sol";
+import {HelperConfig} from "../../script/HelperConfig.s.sol";
+import {DeployLotto} from "../../script/DeployLotto.s.sol";
 import {LottoFactory} from "../../src/Lotto/Factory.sol";
 import {LottoImplementation} from "../../src/Lotto/Implementation.sol";
 import {VRFCoordinatorV2_5Mock} from "@chainlink/contracts/src/v0.8/vrf/mocks/VRFCoordinatorV2_5Mock.sol";
 
 contract LottoSystemTest is Test {
+    HelperConfig config;
+    DeployLotto deployLotto;
     LottoImplementation impl;
     LottoFactory factory;
     VRFCoordinatorV2_5Mock vrfCoordinator;
 
-    address user1 = makeAddr("user1");
-    address user2 = makeAddr("user2");
-    address user3 = makeAddr("user3");
+    address player1 = makeAddr("player1");
+    address player2 = makeAddr("player2");
+    address player3 = makeAddr("player3");
+
+    uint256 constant ENTRY_FEE = 0.01 ether;
+    uint256 constant MAX_PLAYERS = 3;
+
+    uint256 constant OPEN = 0;
+    uint256 constant FULL = 1;
+    uint256 constant CALCULATING = 2;
+    uint256 constant CLOSED = 3;
 
     function setUp() public {
-        vrfCoordinator = new VRFCoordinatorV2_5Mock(0.1 ether, 1e9, 1e18);
-        uint256 subId = vrfCoordinator.createSubscription();
-        vrfCoordinator.fundSubscription(subId, 10 ether);
+        deployLotto = new DeployLotto();
+        (factory, config) = deployLotto.run();
 
-        impl = new LottoImplementation();
-        factory = new LottoFactory(
-            address(impl),
-            address(vrfCoordinator),
-            subId,
-            0x474e34a077df58807dbe9c96d3c009b23b3c6d0cce433e59bbf5b34f823bc56c, // arbitrary keyhash
-            500000 // callback gas limit
-        );
-        vrfCoordinator.addConsumer(subId, address(factory));
+        HelperConfig.NetworkConfig memory networkConfig = config.getConfig();
+        vrfCoordinator = VRFCoordinatorV2_5Mock(networkConfig.vrfCoordinator);
+
+        vm.deal(player1, 1 ether);
+        vm.deal(player2, 1 ether);
+        vm.deal(player3, 1 ether);
     }
 
-    function testFullLottoFlow() external {
+    function test_FullLottoFlow() external {
         // Create Lotto
-        address cloneAddr = factory.createLotto(0.01 ether, 3);
+        address cloneAddr = factory.createLotto(ENTRY_FEE, 3);
         LottoImplementation clone = LottoImplementation(cloneAddr);
 
         // Users join Lotto
-        vm.deal(user1, 1 ether);
-        vm.deal(user2, 1 ether);
-        vm.deal(user3, 1 ether);
+        vm.prank(player1);
+        clone.joinLotto{value: ENTRY_FEE}();
+        vm.prank(player2);
+        clone.joinLotto{value: ENTRY_FEE}();
+        vm.prank(player3);
+        clone.joinLotto{value: ENTRY_FEE}();
 
-        vm.prank(user1);
-        clone.joinLotto{value: 0.01 ether}();
-        vm.prank(user2);
-        clone.joinLotto{value: 0.01 ether}();
-        vm.prank(user3);
-        clone.joinLotto{value: 0.01 ether}();
-
-        // Check that the Lotto is now calculating winner
-        assertEq(uint256(clone.lottoState()), 1); // CALCULATING
+        // Check that the Lotto is full
+        assertEq(uint256(clone.lottoState()), FULL); // FULL
 
         // Assume someone called the requestWinner function
         clone.requestWinner();
@@ -58,32 +62,29 @@ contract LottoSystemTest is Test {
         vrfCoordinator.fulfillRandomWords(requestId, address(factory));
 
         // Check that the winner is finalized
-        assertEq(uint256(clone.lottoState()), 2); // CLOSED
+        assertEq(uint256(clone.lottoState()), CLOSED); // CLOSED
         address winner = clone.winner();
-        assertTrue(winner == user1 || winner == user2 || winner == user3);
+        assertTrue(winner == player1 || winner == player2 || winner == player3);
     }
 
-    function testMultipleLottoInstances() external {
+    function test_MultipleLottoInstances() external {
         // create two Lotto instances
-        address cloneAddrA = factory.createLotto(0.01 ether, 2);
-        address cloneAddrB = factory.createLotto(0.02 ether, 2);
+        address cloneAddrA = factory.createLotto(ENTRY_FEE, 2);
+        address cloneAddrB = factory.createLotto(ENTRY_FEE * 2, 2);
 
         LottoImplementation lottoA = LottoImplementation(cloneAddrA);
         LottoImplementation lottoB = LottoImplementation(cloneAddrB);
 
         // join both Lotto instances
-        vm.deal(user1, 1 ether);
-        vm.deal(user2, 1 ether);
-        vm.prank(user1);
-        lottoA.joinLotto{value: 0.01 ether}();
-        vm.prank(user2);
-        lottoA.joinLotto{value: 0.01 ether}();
+        vm.prank(player1);
+        lottoA.joinLotto{value: ENTRY_FEE}();
+        vm.prank(player2);
+        lottoA.joinLotto{value: ENTRY_FEE}();
 
-        vm.deal(user3, 1 ether);
-        vm.prank(user1);
-        lottoB.joinLotto{value: 0.02 ether}();
-        vm.prank(user3);
-        lottoB.joinLotto{value: 0.02 ether}();
+        vm.prank(player1);
+        lottoB.joinLotto{value: ENTRY_FEE * 2}();
+        vm.prank(player3);
+        lottoB.joinLotto{value: ENTRY_FEE * 2}();
 
         lottoA.requestWinner(); // requestId: 1
         lottoB.requestWinner(); // requestId: 2
@@ -98,15 +99,15 @@ contract LottoSystemTest is Test {
         // each lotto should work independently
 
         // verify Lotto A
-        assertEq(uint256(lottoA.lottoState()), 2); // CLOSED
-        assertEq(lottoA.winner(), user2); // Once random is fixed, winner is predictable
+        assertEq(uint256(lottoA.lottoState()), CLOSED); // CLOSED
+        assertEq(lottoA.winner(), player2); // Once random is fixed, winner is predictable
 
         // verify Lotto B
-        assertEq(uint256(lottoB.lottoState()), 2); // CLOSED
-        assertEq(lottoB.winner(), user3); // Once random is fixed, winner is predictable
+        assertEq(uint256(lottoB.lottoState()), CLOSED); // CLOSED
+        assertEq(lottoB.winner(), player3); // Once random is fixed, winner is predictable
 
         // verify balances
-        assertEq(address(lottoA).balance, 0.02 ether);
-        assertEq(address(lottoB).balance, 0.04 ether);
+        assertEq(address(lottoA).balance, ENTRY_FEE * 2);
+        assertEq(address(lottoB).balance, ENTRY_FEE * 4);
     }
 }
