@@ -4,7 +4,7 @@ pragma solidity ^0.8.24;
 
 import {Test} from "forge-std/Test.sol";
 import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
-import {LottoImplementation} from "../../src/Lotto/Implementation.sol";
+import {LottoImplementation} from "../../src/Lotto/LottoImplementation.sol";
 import {LottoFactoryMock} from "../mock/FactoryMock.sol";
 import {Rejector} from "../mock/Rejector.sol";
 

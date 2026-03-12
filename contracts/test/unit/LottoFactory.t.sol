@@ -3,7 +3,7 @@
 pragma solidity ^0.8.24;
 
 import {Test} from "forge-std/Test.sol";
-import {LottoFactory} from "../../src/Lotto/Factory.sol";
+import {LottoFactory} from "../../src/Lotto/LottoFactory.sol";
 import {LottoImplementationMock} from "../mock/ImplementationMock.sol";
 import {VRFCoordinatorV2_5Mock} from "@chainlink/contracts/src/v0.8/vrf/mocks/VRFCoordinatorV2_5Mock.sol";
 

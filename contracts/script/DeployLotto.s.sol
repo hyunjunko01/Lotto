@@ -4,8 +4,8 @@ pragma solidity ^0.8.24;
 
 import {Script} from "forge-std/Script.sol";
 import {HelperConfig} from "./HelperConfig.s.sol";
-import {LottoFactory} from "../src/Lotto/Factory.sol";
-import {LottoImplementation} from "../src/Lotto/Implementation.sol";
+import {LottoFactory} from "../src/Lotto/LottoFactory.sol";
+import {LottoImplementation} from "../src/Lotto/LottoImplementation.sol";
 import {IVRFCoordinatorV2Plus} from "@chainlink/contracts/src/v0.8/vrf/dev/interfaces/IVRFCoordinatorV2Plus.sol";
 
 contract DeployLotto is Script {
