@@ -16,9 +16,9 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    default:
-        run:
-          working-directory: ./contracts
+    defaults:
+      run:
+        working-directory: ./contracts
     steps:
       - uses: actions/checkout@v5
         with:
