@@ -3,9 +3,9 @@
 pragma solidity ^0.8.24;
 
 import {Script} from "forge-std/Script.sol";
-import {HelperConfig} from "./HelperConfig.s.sol";
-import {EthAccount} from "../src/Account/Ethereum/EthAccount.sol";
-import {AccountFactory} from "../src/Account/Ethereum/AccountFactory.sol";
+import {HelperConfig} from "../config/HelperConfig.s.sol";
+import {EthAccount} from "../../src/Account/Ethereum/EthAccount.sol";
+import {AccountFactory} from "../../src/Account/Ethereum/AccountFactory.sol";
 
 contract DeployAccount is Script {
     function run() external {}

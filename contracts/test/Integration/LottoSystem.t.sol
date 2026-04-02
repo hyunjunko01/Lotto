@@ -3,16 +3,12 @@
 pragma solidity ^0.8.24;
 
 import {Test} from "forge-std/Test.sol";
-import {HelperConfig} from "../../script/HelperConfig.s.sol";
-import {DeployLotto} from "../../script/DeployLotto.s.sol";
+import {SetupVrf} from "../../script/setup/SetupVrf.s.sol";
 import {LottoFactory} from "../../src/Lotto/LottoFactory.sol";
 import {LottoImplementation} from "../../src/Lotto/LottoImplementation.sol";
 import {VRFCoordinatorV2_5Mock} from "@chainlink/contracts/src/v0.8/vrf/mocks/VRFCoordinatorV2_5Mock.sol";
 
 contract LottoSystemTest is Test {
-    HelperConfig config;
-    DeployLotto deployLotto;
-    LottoImplementation impl;
     LottoFactory factory;
     VRFCoordinatorV2_5Mock vrfCoordinator;
 
@@ -22,6 +18,8 @@ contract LottoSystemTest is Test {
 
     uint256 constant ENTRY_FEE = 0.01 ether;
     uint256 constant MAX_PLAYERS = 3;
+    bytes32 constant KEY_HASH = 0x474e34a077df58807dbe9c96d3c009b23b3c6d0cce433e59bbf5b34f823bc56c;
+    uint32 constant CALLBACK_GAS_LIMIT = 500000;
 
     uint256 constant OPEN = 0;
     uint256 constant FULL = 1;
@@ -29,11 +27,16 @@ contract LottoSystemTest is Test {
     uint256 constant CLOSED = 3;
 
     function setUp() public {
-        deployLotto = new DeployLotto();
-        (factory, config) = deployLotto.run();
+        SetupVrf setupVrf = new SetupVrf();
+        address coordinator = setupVrf.deployForTest();
+        vrfCoordinator = VRFCoordinatorV2_5Mock(coordinator);
+        uint256 subscriptionId = vrfCoordinator.createSubscription();
 
-        HelperConfig.NetworkConfig memory networkConfig = config.getConfig();
-        vrfCoordinator = VRFCoordinatorV2_5Mock(networkConfig.vrfCoordinator);
+        LottoImplementation implementation = new LottoImplementation();
+        factory = new LottoFactory(address(implementation), coordinator, subscriptionId, KEY_HASH, CALLBACK_GAS_LIMIT);
+
+        vrfCoordinator.fundSubscription(subscriptionId, 1e24);
+        vrfCoordinator.addConsumer(subscriptionId, address(factory));
 
         vm.deal(player1, 1 ether);
         vm.deal(player2, 1 ether);

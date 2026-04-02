@@ -8,16 +8,16 @@ help:
 	@echo "  make clean        - Remove broadcast and cache artifacts"
 
 setup-vrf:
-	@chmod +x setup_vrf.sh && ./setup_vrf.sh
+	@chmod +x scripts/setup_vrf.sh && ./scripts/setup_vrf.sh
 
 setup-entrypoint:
-	@chmod +x setup_entrypoint.sh && ./setup_entrypoint.sh
+	@chmod +x scripts/setup_entrypoint.sh && ./scripts/setup_entrypoint.sh
 
 deploy: setup-vrf setup-entrypoint
 	@cd contracts && \
 	bash -c 'set -a; source .env; set +a; \
 	echo "Deploying Lotto contracts..."; \
-	forge script script/DeployLotto.s.sol --rpc-url $$ANVIL_RPC_URL --private-key $$ANVIL_PRIVATE_KEY --broadcast'
+	forge script script/deploy/DeployLotto.s.sol --rpc-url $$ANVIL_RPC_URL --private-key $$ANVIL_PRIVATE_KEY --broadcast'
 
 clean:
 	@cd contracts && rm -rf broadcast cache out

@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-cd "$(dirname "$0")/contracts"
+cd "$(dirname "$0")/../contracts"
 
 set -a
 source .env
 set +a
 
 echo "Running SetupEntryPoint..."
-forge script script/SetupEntryPoint.s.sol --rpc-url "$ANVIL_RPC_URL" --private-key "$ANVIL_PRIVATE_KEY" --broadcast --code-size-limit 40000
+forge script script/setup/SetupEntryPoint.s.sol --rpc-url "$ANVIL_RPC_URL" --private-key "$ANVIL_PRIVATE_KEY" --broadcast --code-size-limit 40000
 
 echo "Extracting entrypoint address from broadcast..."
 BROADCAST_JSON="broadcast/SetupEntryPoint.s.sol/31337/run-latest.json"

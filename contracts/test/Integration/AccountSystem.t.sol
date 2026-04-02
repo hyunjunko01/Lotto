@@ -3,21 +3,17 @@
 pragma solidity ^0.8.24;
 
 import {Test, console} from "forge-std/Test.sol";
-import {HelperConfig} from "../../script/HelperConfig.s.sol";
-import {DeployAccount} from "../../script/DeployAccount.s.sol";
+import {SetupEntryPoint} from "../../script/setup/SetupEntryPoint.s.sol";
 import {EthAccount, IEntryPoint} from "../../src/Account/Ethereum/EthAccount.sol";
 import {AccountFactory} from "../../src/Account/Ethereum/AccountFactory.sol";
 import {PackedUserOperation} from "@account-abstraction/contracts/interfaces/PackedUserOperation.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
-import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import {SIG_VALIDATION_FAILED, SIG_VALIDATION_SUCCESS} from "@account-abstraction/contracts/core/Helpers.sol";
 
 contract AccountSystemTest is Test {
     using MessageHashUtils for bytes32;
 
-    HelperConfig config;
-    DeployAccount deployAccount;
     AccountFactory factory;
 
     ERC20Mock usdc;
@@ -25,19 +21,18 @@ contract AccountSystemTest is Test {
     address user;
     uint256 userPrivateKey;
     address entryPoint;
-    address fakeEntryPoint = address(0x1234); // For testing non-entry point calls
-
     uint256 constant AMOUNT = 1e18;
     uint256 constant SALT = 1;
 
     function setUp() public {
         (user, userPrivateKey) = makeAddrAndKey("user");
-        deployAccount = new DeployAccount();
-        (factory, config) = deployAccount.deployAccount();
-        usdc = new ERC20Mock();
+        SetupEntryPoint setupEntryPoint = new SetupEntryPoint();
+        entryPoint = setupEntryPoint.deployForTest();
 
-        HelperConfig.NetworkConfig memory networkConfig = config.getConfig();
-        entryPoint = networkConfig.entryPoint;
+        EthAccount ethAccount = new EthAccount(entryPoint);
+        factory = new AccountFactory(address(ethAccount));
+
+        usdc = new ERC20Mock();
     }
 
     // --- Account Factory Tests ---

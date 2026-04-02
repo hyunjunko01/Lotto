@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-cd "$(dirname "$0")/contracts"
+cd "$(dirname "$0")/../contracts"
 
 set -a
 source .env
@@ -11,7 +11,7 @@ echo "Mining initial block..."
 cast rpc anvil_mine 1 --rpc-url "$ANVIL_RPC_URL" > /dev/null 2>&1 || true
 
 echo "Running SetupVrf..."
-forge script script/SetupVrf.s.sol --rpc-url "$ANVIL_RPC_URL" --private-key "$ANVIL_PRIVATE_KEY" --broadcast
+forge script script/setup/SetupVrf.s.sol --rpc-url "$ANVIL_RPC_URL" --private-key "$ANVIL_PRIVATE_KEY" --broadcast
 
 echo "Mining to confirm transactions..."
 cast rpc anvil_mine 1 --rpc-url "$ANVIL_RPC_URL" > /dev/null 2>&1 || true
