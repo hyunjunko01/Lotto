@@ -1,15 +1,19 @@
-.PHONY: setup-vrf deploy clean help
+.PHONY: setup-vrf setup-entrypoint deploy clean help
 
 help:
 	@echo "Available targets:"
 	@echo "  make setup-vrf    - Deploy VRF mock, create subscription, and update .env"
+	@echo "  make setup-entrypoint - Deploy EntryPoint and update .env"
 	@echo "  make deploy       - Deploy Lotto contracts to anvil"
 	@echo "  make clean        - Remove broadcast and cache artifacts"
 
 setup-vrf:
 	@chmod +x setup_vrf.sh && ./setup_vrf.sh
 
-deploy: setup-vrf
+setup-entrypoint:
+	@chmod +x setup_entrypoint.sh && ./setup_entrypoint.sh
+
+deploy: setup-vrf setup-entrypoint
 	@cd contracts && \
 	bash -c 'set -a; source .env; set +a; \
 	echo "Deploying Lotto contracts..."; \

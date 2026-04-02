@@ -3,13 +3,12 @@
 pragma solidity ^0.8.24;
 
 import {Script} from "forge-std/Script.sol";
-import {EntryPoint} from "@account-abstraction/contracts/core/EntryPoint.sol";
-import {VRFCoordinatorV2_5Mock} from "@chainlink/contracts/src/v0.8/vrf/mocks/VRFCoordinatorV2_5Mock.sol";
 
 contract HelperConfig is Script {
     // --- error ---
     error HelperConfig__OnlyAnvilSupported();
     error HelperConfig__MissingAnvilVrfEnv();
+    error HelperConfig__MissingAnvilEntryPointEnv();
 
     struct NetworkConfig {
         address vrfCoordinator;
@@ -53,13 +52,18 @@ contract HelperConfig is Script {
         address envCoordinator = vm.envOr("ANVIL_VRF_COORDINATOR", address(0));
         uint256 envSubId = vm.envOr("ANVIL_SUBSCRIPTION_ID", uint256(0));
         if (envCoordinator != address(0) && envSubId != 0) {
+            address entryPoint = vm.envOr("ANVIL_ENTRY_POINT", address(0));
+            if (entryPoint == address(0)) {
+                revert HelperConfig__MissingAnvilEntryPointEnv();
+            }
+
             return NetworkConfig({
                 vrfCoordinator: envCoordinator,
                 keyHash: 0x474e34a077df58807dbe9c96d3c009b23b3c6d0cce433e59bbf5b34f823bc56c,
                 subscriptionId: envSubId,
                 callbackGasLimit: 500000,
                 account: ANVIL_DEFAULT_ACCOUNT,
-                entryPoint: address(0)
+                entryPoint: entryPoint
             });
         } else {
             revert HelperConfig__MissingAnvilVrfEnv();
