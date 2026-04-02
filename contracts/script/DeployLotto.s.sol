@@ -11,20 +11,31 @@ import {IVRFCoordinatorV2Plus} from "@chainlink/contracts/src/v0.8/vrf/dev/inter
 contract DeployLotto is Script {
     function run() external returns (LottoFactory, HelperConfig) {
         HelperConfig helperConfig = new HelperConfig();
+        HelperConfig.NetworkConfig memory networkConfig = helperConfig.getConfig();
 
-        (address vrfCoordinator, bytes32 keyHash, uint256 subscriptionId, uint32 callbackGasLimit, address account,) =
-            helperConfig.activeNetworkConfig();
-
-        vm.startBroadcast(account);
-
+        vm.startBroadcast();
         LottoImplementation lottoImplementation = new LottoImplementation();
+        LottoFactory lottoFactory = new LottoFactory(
+            address(lottoImplementation),
+            networkConfig.vrfCoordinator,
+            networkConfig.subscriptionId,
+            networkConfig.keyHash,
+            networkConfig.callbackGasLimit
+        );
+        vm.stopBroadcast();
 
-        LottoFactory lottoFactory =
-            new LottoFactory(address(lottoImplementation), vrfCoordinator, subscriptionId, keyHash, callbackGasLimit);
+        vm.startBroadcast();
+        IVRFCoordinatorV2Plus(networkConfig.vrfCoordinator).fundSubscriptionWithNative{value: 1 ether}(
+            networkConfig.subscriptionId
+        );
+        vm.stopBroadcast();
 
-        IVRFCoordinatorV2Plus(vrfCoordinator).addConsumer(subscriptionId, address(lottoFactory));
+        vm.startBroadcast();
+        IVRFCoordinatorV2Plus(networkConfig.vrfCoordinator)
+            .addConsumer(networkConfig.subscriptionId, address(lottoFactory));
         vm.stopBroadcast();
 
         return (lottoFactory, helperConfig);
     }
 }
+
