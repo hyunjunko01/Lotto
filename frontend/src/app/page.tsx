@@ -1,60 +1,99 @@
 'use client';
 
-import { useState } from 'react';
-import { ConnectButton } from '@rainbow-me/rainbowkit';
-import LottoABI from '../contracts/LottoFactory.json';
+import Link from 'next/link';
 
-export default function LottoPage() {
-  // 상태 관리 (나중에 Wagmi 연결 후 실제 데이터로 교체)
-  const [ticketPrice, setTicketPrice] = useState('0.01 ETH');
-  const [totalPool, setTotalPool] = useState('0.5 ETH');
-  const [isJoined, setIsJoined] = useState(false);
-
-  // 로또 참여 함수 (나중에 AA UserOp 로직이 들어갈 곳)
-  const handleJoinLotto = () => {
-    alert('로또 참여 트랜잭션을 실행합니다! (AA Wallet 필요)');
-    // 여기에 번들러 전송 로직이 추가될 예정입니다.
-  };
-
-  return (
-    <main style={{ padding: '2rem', fontFamily: 'sans-serif' }}>
-      <h1>🎰 Tyler's AA Lotto DApp</h1>
-      <hr />
-
-      {/* 1. wallet connection */}
-      <section>
-        <h2>지갑 정보</h2>
-        <ConnectButton />
-      </section>
-
-      <br />
-
-      {/* 2. contract info section (Read) */}
-      <section>
-        <h2>로또 정보</h2>
-        <ul>
-          <li>티켓 가격: <strong>{ticketPrice}</strong></li>
-          <li>현재 총 상금: <strong>{totalPool}</strong></li>
-          <li>내 참여 상태: {isJoined ? '✅ 참여 중' : '❌ 미참여'}</li>
-        </ul>
-      </section>
-
-      <br />
-
-      {/* 3. 액션 섹션 (Write) */}
-      <section>
-        <h2>참여하기</h2>
-        <p>스마트 계정(AA)을 통해 가스비 없이 참여하세요!</p>
-        <button
-          onClick={handleJoinLotto}
-          style={{ padding: '10px 20px', cursor: 'pointer' }}
+export default function HomePage() {
+    return (
+        <main
+            style={{
+                minHeight: '100dvh',
+                padding: '28px 16px 44px',
+                background:
+                    'radial-gradient(1200px 500px at 10% -10%, rgba(22, 86, 102, 0.4), transparent), linear-gradient(180deg, #07161c 0%, #0b101a 100%)',
+                fontFamily: "'Avenir Next', 'IBM Plex Sans', 'Segoe UI', sans-serif",
+                color: '#e8f2f4',
+            }}
         >
-          로또 티켓 구매
-        </button>
-      </section>
+            <div style={{ maxWidth: 920, margin: '0 auto' }}>
+                <section
+                    style={{
+                        marginTop: 0,
+                        padding: 20,
+                        border: '1px solid #3e5a60',
+                        borderRadius: 14,
+                        background: 'linear-gradient(160deg, rgba(10, 35, 44, 0.92), rgba(12, 20, 30, 0.9))',
+                    }}
+                >
+                    <p
+                        style={{
+                            display: 'inline-block',
+                            margin: 0,
+                            padding: '4px 10px',
+                            borderRadius: 999,
+                            background: '#153740',
+                            color: '#9fd6df',
+                            fontSize: 12,
+                            fontWeight: 700,
+                            letterSpacing: 0.4,
+                            textTransform: 'uppercase',
+                        }}
+                    >
+                        Lottery Dashboard
+                    </p>
+                    <h1 style={{ margin: '12px 0 0', fontSize: 'clamp(1.8rem, 3vw, 2.5rem)', lineHeight: 1.18 }}>
+                        Tyler&apos;s Lotto DApp
+                    </h1>
+                    <p style={{ marginTop: 12, color: '#b8cdcf', lineHeight: 1.55 }}>Choose one action to continue.</p>
+                </section>
 
-      <br />
-      <small>ABI 로드 확인: {LottoABI ? '✅ 완료' : '❌ 실패'}</small>
-    </main>
-  );
+                <section
+                    style={{
+                        marginTop: 24,
+                        padding: 20,
+                        border: '1px solid #2d3f45',
+                        borderRadius: 14,
+                        background: 'rgba(7, 19, 24, 0.72)',
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                        gap: 12,
+                    }}
+                >
+                    <Link
+                        href="/create-lottery"
+                        style={{
+                            display: 'block',
+                            textAlign: 'center',
+                            padding: '12px 16px',
+                            borderRadius: 10,
+                            border: '1px solid #76b4be',
+                            background: 'linear-gradient(135deg, #0f7f8f, #155a8a)',
+                            color: '#ecf8ff',
+                            fontWeight: 700,
+                            letterSpacing: 0.2,
+                            textDecoration: 'none',
+                        }}
+                    >
+                        create lottery
+                    </Link>
+                    <Link
+                        href="/join-lottery"
+                        style={{
+                            display: 'block',
+                            textAlign: 'center',
+                            padding: '12px 16px',
+                            borderRadius: 10,
+                            border: '1px solid #76b4be',
+                            background: 'linear-gradient(135deg, #0f7f8f, #155a8a)',
+                            color: '#ecf8ff',
+                            fontWeight: 700,
+                            letterSpacing: 0.2,
+                            textDecoration: 'none',
+                        }}
+                    >
+                        join lottery
+                    </Link>
+                </section>
+            </div>
+        </main>
+    );
 }
