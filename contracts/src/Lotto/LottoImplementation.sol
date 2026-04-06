@@ -161,6 +161,14 @@ contract LottoImplementation is Initializable, ReentrancyGuard {
     }
 
     // --- Getter functions ---
+    function getPlayerCount() external view returns (uint256) {
+        return players.length;
+    }
+
+    function getRemainingSpots() external view returns (uint256) {
+        return maxPlayers - players.length;
+    }
+
     function getLottoBalance() external view returns (uint256) {
         return address(this).balance;
     }
