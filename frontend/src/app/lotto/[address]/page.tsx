@@ -77,6 +77,20 @@ const lottoInstanceAbi = [
     },
     {
         type: 'function',
+        name: 'getPlayerCount',
+        stateMutability: 'view',
+        inputs: [],
+        outputs: [{ name: '', type: 'uint256' }],
+    },
+    {
+        type: 'function',
+        name: 'getRemainingSpots',
+        stateMutability: 'view',
+        inputs: [],
+        outputs: [{ name: '', type: 'uint256' }],
+    },
+    {
+        type: 'function',
         name: 'winner',
         stateMutability: 'view',
         inputs: [],
@@ -161,6 +175,26 @@ export default function LottoInstancePage() {
         abi: lottoInstanceAbi,
         functionName: 'maxPlayers',
         query: { enabled: Boolean(lottoAddress) },
+    });
+
+    const { data: playerCount } = useReadContract({
+        address: lottoAddress,
+        abi: lottoInstanceAbi,
+        functionName: 'getPlayerCount',
+        query: {
+            enabled: Boolean(lottoAddress),
+            refetchInterval: 3000,
+        },
+    });
+
+    const { data: remainingSpots } = useReadContract({
+        address: lottoAddress,
+        abi: lottoInstanceAbi,
+        functionName: 'getRemainingSpots',
+        query: {
+            enabled: Boolean(lottoAddress),
+            refetchInterval: 3000,
+        },
     });
 
     const { data: winner } = useReadContract({
@@ -453,6 +487,8 @@ export default function LottoInstancePage() {
                         <p style={{ margin: 0 }}>Status: {stateToLabel(lottoStateValue)}</p>
                         <p style={{ margin: 0 }}>Entry Fee: {entryFee !== undefined ? formatEther(entryFee) : '-'} ETH</p>
                         <p style={{ margin: 0 }}>Max Players: {maxPlayers !== undefined ? Number(maxPlayers) : '-'}</p>
+                        <p style={{ margin: 0 }}>Current Players: {playerCount !== undefined ? Number(playerCount) : '-'}</p>
+                        <p style={{ margin: 0 }}>Remaining Spots: {remainingSpots !== undefined ? Number(remainingSpots) : '-'}</p>
                         <p style={{ margin: 0 }}>Current Balance: {lottoBalance !== undefined ? formatEther(lottoBalance) : '-'} ETH</p>
                         <p style={{ margin: 0, wordBreak: 'break-all' }}>Winner: {winner ?? '-'}</p>
                         <p style={{ margin: 0, wordBreak: 'break-all' }}>Factory: {factory ?? '-'}</p>
