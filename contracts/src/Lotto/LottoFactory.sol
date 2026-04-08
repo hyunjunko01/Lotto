@@ -28,6 +28,7 @@ contract LottoFactory is VRFConsumerBaseV2Plus {
     uint256 private s_subscriptionId;
     bytes32 private s_keyHash;
     uint32 private s_callbackGasLimit;
+    bool public immutable i_useNativePayment;
     uint16 private constant REQUEST_CONFIRMATIONS = 3;
     uint32 private constant NUM_WORDS = 1;
 
@@ -41,12 +42,14 @@ contract LottoFactory is VRFConsumerBaseV2Plus {
         address _vrfCoordinator,
         uint256 _subId,
         bytes32 _keyHash,
-        uint32 _callbackGasLimit
+        uint32 _callbackGasLimit,
+        bool _useNativePayment
     ) VRFConsumerBaseV2Plus(_vrfCoordinator) {
         i_implementation = _implementation;
         s_subscriptionId = _subId;
         s_keyHash = _keyHash;
         s_callbackGasLimit = _callbackGasLimit;
+        i_useNativePayment = _useNativePayment;
     }
 
     /**
@@ -85,7 +88,9 @@ contract LottoFactory is VRFConsumerBaseV2Plus {
                 requestConfirmations: REQUEST_CONFIRMATIONS,
                 callbackGasLimit: s_callbackGasLimit,
                 numWords: NUM_WORDS,
-                extraArgs: VRFV2PlusClient._argsToBytes(VRFV2PlusClient.ExtraArgsV1({nativePayment: false}))
+                extraArgs: VRFV2PlusClient._argsToBytes(
+                    VRFV2PlusClient.ExtraArgsV1({nativePayment: i_useNativePayment})
+                )
             })
         );
 

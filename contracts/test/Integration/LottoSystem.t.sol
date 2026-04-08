@@ -33,7 +33,8 @@ contract LottoSystemTest is Test {
         uint256 subscriptionId = vrfCoordinator.createSubscription();
 
         LottoImplementation implementation = new LottoImplementation();
-        factory = new LottoFactory(address(implementation), coordinator, subscriptionId, KEY_HASH, CALLBACK_GAS_LIMIT);
+        factory =
+            new LottoFactory(address(implementation), coordinator, subscriptionId, KEY_HASH, CALLBACK_GAS_LIMIT, false);
 
         vrfCoordinator.fundSubscription(subscriptionId, 1e24);
         vrfCoordinator.addConsumer(subscriptionId, address(factory));

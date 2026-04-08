@@ -20,15 +20,18 @@ contract DeployLotto is Script {
             networkConfig.vrfCoordinator,
             networkConfig.subscriptionId,
             networkConfig.keyHash,
-            networkConfig.callbackGasLimit
+            networkConfig.callbackGasLimit,
+            networkConfig.useNativePayment
         );
         vm.stopBroadcast();
 
-        vm.startBroadcast();
-        IVRFCoordinatorV2Plus(networkConfig.vrfCoordinator).fundSubscriptionWithNative{value: 1 ether}(
-            networkConfig.subscriptionId
-        );
-        vm.stopBroadcast();
+        if (networkConfig.useNativePayment) {
+            vm.startBroadcast();
+            IVRFCoordinatorV2Plus(networkConfig.vrfCoordinator).fundSubscriptionWithNative{value: 1 ether}(
+                networkConfig.subscriptionId
+            );
+            vm.stopBroadcast();
+        }
 
         vm.startBroadcast();
         IVRFCoordinatorV2Plus(networkConfig.vrfCoordinator)

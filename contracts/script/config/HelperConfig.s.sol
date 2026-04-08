@@ -15,6 +15,7 @@ contract HelperConfig is Script {
         bytes32 keyHash;
         uint256 subscriptionId;
         uint32 callbackGasLimit;
+        bool useNativePayment;
         address account;
         address entryPoint;
     }
@@ -62,6 +63,7 @@ contract HelperConfig is Script {
                 keyHash: 0x474e34a077df58807dbe9c96d3c009b23b3c6d0cce433e59bbf5b34f823bc56c,
                 subscriptionId: envSubId,
                 callbackGasLimit: 500000,
+                useNativePayment: true,
                 account: ANVIL_DEFAULT_ACCOUNT,
                 entryPoint: entryPoint
             });

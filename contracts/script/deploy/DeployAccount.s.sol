@@ -12,7 +12,7 @@ contract DeployAccount is Script {
 
     function deployAccount() external returns (AccountFactory, HelperConfig) {
         HelperConfig helperConfig = new HelperConfig();
-        (,,,, address account, address entryPoint) = helperConfig.activeNetworkConfig();
+        (,,,,, address account, address entryPoint) = helperConfig.activeNetworkConfig();
 
         vm.startBroadcast(account);
         EthAccount ethAccount = new EthAccount(entryPoint);
