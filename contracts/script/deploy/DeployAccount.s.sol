@@ -8,9 +8,7 @@ import {EthAccount} from "../../src/Account/Ethereum/EthAccount.sol";
 import {AccountFactory} from "../../src/Account/Ethereum/AccountFactory.sol";
 
 contract DeployAccount is Script {
-    function run() external {}
-
-    function deployAccount() external returns (AccountFactory, HelperConfig) {
+    function run() external returns (AccountFactory, HelperConfig) {
         HelperConfig helperConfig = new HelperConfig();
         (,,,,, address account, address entryPoint) = helperConfig.activeNetworkConfig();
 
