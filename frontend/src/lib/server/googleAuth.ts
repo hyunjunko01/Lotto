@@ -22,7 +22,7 @@ export async function verifyGoogleIdToken(idToken: string): Promise<GoogleTokenI
         throw new Error('Google token payload missing required claims.');
     }
 
-    const clientId = process.env.GOOGLE_CLIENT_ID;
+    const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
     if (clientId && tokenInfo.aud !== clientId) {
         throw new Error('Google token aud mismatch.');
     }

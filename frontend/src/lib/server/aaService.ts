@@ -39,17 +39,17 @@ function getBundlerUrl(): string {
 }
 
 function getAccountFactoryAddress(): `0x${string}` {
-    const value = process.env.AA_ACCOUNT_FACTORY_ADDRESS ?? process.env.NEXT_PUBLIC_ACCOUNT_FACTORY_ADDRESS;
+    const value = process.env.NEXT_PUBLIC_ACCOUNT_FACTORY_ADDRESS;
     if (!value || !isAddress(value)) {
-        throw new Error('AA_ACCOUNT_FACTORY_ADDRESS is required and must be a valid address.');
+        throw new Error('NEXT_PUBLIC_ACCOUNT_FACTORY_ADDRESS is required and must be a valid address.');
     }
     return value;
 }
 
 function getEntryPointAddress(): `0x${string}` {
-    const value = process.env.AA_ENTRY_POINT_ADDRESS;
+    const value = process.env.AA_ENTRYPOINT_ADDRESS;
     if (!value || !isAddress(value)) {
-        throw new Error('AA_ENTRY_POINT_ADDRESS is required and must be a valid address.');
+        throw new Error('AA_ENTRYPOINT_ADDRESS is required and must be a valid address.');
     }
     return value;
 }
