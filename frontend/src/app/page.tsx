@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { GoogleAaPanel } from '@/components/GoogleAaPanel';
 
 export default function HomePage() {
     return (
@@ -93,6 +94,8 @@ export default function HomePage() {
                         join lottery
                     </Link>
                 </section>
+
+                <GoogleAaPanel />
             </div>
         </main>
     );

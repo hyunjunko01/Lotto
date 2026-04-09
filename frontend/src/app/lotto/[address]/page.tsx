@@ -144,7 +144,7 @@ export default function LottoInstancePage() {
         [rawAddress]
     );
 
-    const { isConnected, chainId } = useAccount();
+    const { address: connectedAddress, isConnected, chainId } = useAccount();
     const publicClient = usePublicClient();
     const { switchChain } = useSwitchChain();
     const isWrongNetwork = isConnected && chainId !== ANVIL_CHAIN_ID;
@@ -250,7 +250,13 @@ export default function LottoInstancePage() {
     const statusNumber = lottoStateValue !== undefined ? Number(lottoStateValue) : undefined;
     const canJoin = statusNumber === LottoState.OPEN;
     const canRequest = statusNumber === LottoState.FULL;
-    const canWithdraw = statusNumber === LottoState.CLOSED && !isPrizeWithdrawn;
+    const hasWinner = Boolean(winner && winner !== '0x0000000000000000000000000000000000000000');
+    const isConnectedWinner =
+        Boolean(connectedAddress) &&
+        hasWinner &&
+        winner !== undefined &&
+        connectedAddress!.toLowerCase() === winner.toLowerCase();
+    const canWithdraw = statusNumber === LottoState.CLOSED && !isPrizeWithdrawn && isConnectedWinner;
 
     const getErrorMessage = (error: unknown, fallback: string) => {
         if (error instanceof BaseError) return error.shortMessage || fallback;
@@ -392,6 +398,10 @@ export default function LottoInstancePage() {
         try {
             setActionError('');
             if (!ensureReady() || !lottoAddress) return;
+            if (!isConnectedWinner) {
+                setActionError('Only the winner can withdraw the prize.');
+                return;
+            }
             if (!canWithdraw) {
                 setActionError('withdrawPrize is only available when state is CLOSED and prize is not withdrawn.');
                 return;
@@ -586,6 +596,11 @@ export default function LottoInstancePage() {
                         {!canWithdraw ? (
                             <p style={{ marginTop: 10, color: '#c6dfe2' }}>
                                 Enabled only when status is CLOSED and prize is not withdrawn.
+                            </p>
+                        ) : null}
+                        {statusNumber === LottoState.CLOSED && !isPrizeWithdrawn && !isConnectedWinner ? (
+                            <p style={{ marginTop: 10, color: '#ffc2b6' }}>
+                                Only the winner can withdraw the prize.
                             </p>
                         ) : null}
                     </div>
