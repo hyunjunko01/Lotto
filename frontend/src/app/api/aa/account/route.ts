@@ -1,39 +1,48 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createAccountIfMissing, getOrCreateAaIdentity } from '@/lib/server/aaService';
-import { readBearerToken, verifySessionToken } from '@/lib/server/session';
+import { getAAIdentityFromOwner } from '@/lib/server/aaService';
+import { isAddress } from 'viem';
 
 export const runtime = 'nodejs';
 
+function parseAndValidate(request: NextRequest): { ownerAddress: `0x${string}`; salt: string } | NextResponse {
+    const ownerAddressParam = request.nextUrl.searchParams.get('ownerAddress');
+    const saltParam = request.nextUrl.searchParams.get('salt');
+
+    if (!ownerAddressParam || !saltParam) {
+        return NextResponse.json(
+            { error: 'ownerAddress and salt query parameters are required (Web3Auth EOA + client-derived salt).' },
+            { status: 400 }
+        );
+    }
+
+    if (!isAddress(ownerAddressParam)) {
+        return NextResponse.json({ error: 'ownerAddress must be a valid address.' }, { status: 400 });
+    }
+
+    return { ownerAddress: ownerAddressParam, salt: saltParam };
+}
+
 export async function GET(request: NextRequest) {
     try {
-        const token = readBearerToken(request.headers.get('authorization'));
-        if (!token) {
-            return NextResponse.json({ error: 'Missing bearer token.' }, { status: 401 });
+        const parsed = parseAndValidate(request);
+        if (parsed instanceof NextResponse) {
+            return parsed;
         }
-
-        const session = verifySessionToken(token);
-        if (!session) {
-            return NextResponse.json({ error: 'Invalid or expired session token.' }, { status: 401 });
-        }
-
-        const identity = await getOrCreateAaIdentity(session.googleSub, session.email);
-        const shouldCreate = request.nextUrl.searchParams.get('createIfMissing') === 'true';
-
-        let deployedAccountAddress = identity.accountAddress;
-        if (shouldCreate) {
-            deployedAccountAddress = await createAccountIfMissing(identity.ownerAddress, identity.salt);
-        }
+        const identity = await getAAIdentityFromOwner(parsed.ownerAddress, parsed.salt);
 
         return NextResponse.json({
             ok: true,
             account: {
                 ownerAddress: identity.ownerAddress,
-                accountAddress: deployedAccountAddress,
+                accountAddress: identity.accountAddress,
                 salt: identity.salt,
             },
         });
     } catch (error) {
-        const message = error instanceof Error ? error.message : 'Failed to get AA account.';
+        const rawMessage = error instanceof Error ? error.message : 'Failed to get AA account.';
+        const message = /fetch failed|HTTP request failed/i.test(rawMessage)
+            ? 'Failed to reach RPC (AA_RPC_URL). Make sure Anvil is running at http://127.0.0.1:8545 and restart the flow.'
+            : rawMessage;
         return NextResponse.json({ error: message }, { status: 500 });
     }
 }

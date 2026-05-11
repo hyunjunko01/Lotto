@@ -1,0 +1,13 @@
+{
+	"name": "lotto-monorepo",
+	"private": true,
+	"scripts": {
+		"dev": "pnpm -C frontend dev",
+		"build": "pnpm -C frontend build",
+		"start": "pnpm -C frontend start",
+		"lint": "pnpm -C frontend lint"
+	},
+	"pnpm": {
+		"ignoredBuiltDependencies": ["sharp", "unrs-resolver"]
+	}
+}

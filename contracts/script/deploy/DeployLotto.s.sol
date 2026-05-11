@@ -6,14 +6,13 @@ import {Script} from "forge-std/Script.sol";
 import {HelperConfig} from "../config/HelperConfig.s.sol";
 import {LottoFactory} from "../../src/Lotto/LottoFactory.sol";
 import {LottoImplementation} from "../../src/Lotto/LottoImplementation.sol";
-import {IVRFCoordinatorV2Plus} from "@chainlink/contracts/src/v0.8/vrf/dev/interfaces/IVRFCoordinatorV2Plus.sol";
 
 contract DeployLotto is Script {
     function run() external returns (LottoFactory, HelperConfig) {
         HelperConfig helperConfig = new HelperConfig();
         HelperConfig.NetworkConfig memory networkConfig = helperConfig.getConfig();
 
-        vm.startBroadcast();
+        vm.startBroadcast(networkConfig.account);
         LottoImplementation lottoImplementation = new LottoImplementation();
         LottoFactory lottoFactory = new LottoFactory(
             address(lottoImplementation),
@@ -23,19 +22,6 @@ contract DeployLotto is Script {
             networkConfig.callbackGasLimit,
             networkConfig.useNativePayment
         );
-        vm.stopBroadcast();
-
-        if (networkConfig.useNativePayment) {
-            vm.startBroadcast();
-            IVRFCoordinatorV2Plus(networkConfig.vrfCoordinator).fundSubscriptionWithNative{value: 1 ether}(
-                networkConfig.subscriptionId
-            );
-            vm.stopBroadcast();
-        }
-
-        vm.startBroadcast();
-        IVRFCoordinatorV2Plus(networkConfig.vrfCoordinator)
-            .addConsumer(networkConfig.subscriptionId, address(lottoFactory));
         vm.stopBroadcast();
 
         return (lottoFactory, helperConfig);

@@ -13,6 +13,7 @@ contract LottoFactoryUnitTest is Test {
     LottoImplementationMock impl;
 
     address player1 = makeAddr("player1");
+    address entryToken = makeAddr("entryToken");
 
     function setUp() public {
         impl = new LottoImplementationMock();
@@ -34,15 +35,15 @@ contract LottoFactoryUnitTest is Test {
     // --- createLotto function tests ---
 
     function test_createLotto_Success() external {
-        address lottoAddress = factory.createLotto(0.1 ether, 3);
+        address lottoAddress = factory.createLotto(0.1 ether, 3, entryToken);
         assertTrue(lottoAddress != address(0));
         assertTrue(factory.isLottoInstance(lottoAddress));
         assertTrue(LottoImplementationMock(lottoAddress).initialized());
     }
 
     function test_createLotto_UpdatesAllLottosArray() external {
-        address lottoAddress1 = factory.createLotto(0.1 ether, 3);
-        address lottoAddress2 = factory.createLotto(0.2 ether, 5);
+        address lottoAddress1 = factory.createLotto(0.1 ether, 3, entryToken);
+        address lottoAddress2 = factory.createLotto(0.2 ether, 5, entryToken);
 
         assertEq(factory.allLottos(0), lottoAddress1);
         assertEq(factory.allLottos(1), lottoAddress2);
@@ -53,13 +54,13 @@ contract LottoFactoryUnitTest is Test {
         emit LottoFactory.LottoCreated(address(0), player1); // We will check lottoAddress and creator in the event
 
         vm.prank(player1);
-        factory.createLotto(0.1 ether, 3);
+        factory.createLotto(0.1 ether, 3, entryToken);
     }
 
     // --- requestWinnerRandomness function tests ---
 
     function test_requestWinnerRandomness_ByLottoInstance() external {
-        address lottoAddress = factory.createLotto(0.1 ether, 3);
+        address lottoAddress = factory.createLotto(0.1 ether, 3, entryToken);
 
         vm.prank(lottoAddress);
         uint256 requestId = factory.requestWinnerRandomness();
@@ -76,7 +77,7 @@ contract LottoFactoryUnitTest is Test {
     // --- fulfillRandomWords function tests ---
 
     function test_fulfillRandomWords_Sucess() external {
-        address lottoAddress = factory.createLotto(0.1 ether, 3);
+        address lottoAddress = factory.createLotto(0.1 ether, 3, entryToken);
 
         vm.prank(lottoAddress);
         uint256 requestId = factory.requestWinnerRandomness();
@@ -90,8 +91,8 @@ contract LottoFactoryUnitTest is Test {
     }
 
     function test_fulfillRandomWords_CorrectMapping() external {
-        address lottoAddress1 = factory.createLotto(0.1 ether, 3);
-        address lottoAddress2 = factory.createLotto(0.2 ether, 5);
+        address lottoAddress1 = factory.createLotto(0.1 ether, 3, entryToken);
+        address lottoAddress2 = factory.createLotto(0.2 ether, 5, entryToken);
 
         vm.prank(lottoAddress1);
         uint256 requestId1 = factory.requestWinnerRandomness();
@@ -122,8 +123,8 @@ contract LottoFactoryUnitTest is Test {
     // --- getter functions tests ---
 
     function test_getAllLottos() external {
-        address lottoAddress1 = factory.createLotto(0.1 ether, 3);
-        address lottoAddress2 = factory.createLotto(0.2 ether, 5);
+        address lottoAddress1 = factory.createLotto(0.1 ether, 3, entryToken);
+        address lottoAddress2 = factory.createLotto(0.2 ether, 5, entryToken);
 
         address[] memory allLottos = factory.getAllLottos();
         assertEq(allLottos.length, 2);
@@ -132,8 +133,8 @@ contract LottoFactoryUnitTest is Test {
     }
 
     function test_getLengthOfAllLottos() external {
-        factory.createLotto(0.1 ether, 3);
-        factory.createLotto(0.2 ether, 5);
+        factory.createLotto(0.1 ether, 3, entryToken);
+        factory.createLotto(0.2 ether, 5, entryToken);
 
         uint256 length = factory.getLengthOfAllLottos();
         assertEq(length, 2);

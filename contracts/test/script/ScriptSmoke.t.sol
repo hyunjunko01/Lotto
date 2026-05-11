@@ -40,10 +40,10 @@ contract ScriptSmokeTest is Test {
         assertEq(config.callbackGasLimit, 500000);
     }
 
-    function test_helperConfig_revertsOnNonAnvilChain() external {
+    function test_helperConfig_revertsOnUnsupportedChain() external {
         vm.chainId(1);
 
-        vm.expectRevert(HelperConfig.HelperConfig__OnlyAnvilSupported.selector);
+        vm.expectRevert(abi.encodeWithSelector(HelperConfig.HelperConfig__UnsupportedChain.selector, 1));
         new HelperConfig();
     }
 }

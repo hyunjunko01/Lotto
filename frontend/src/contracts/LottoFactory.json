@@ -26,6 +26,11 @@
         "name": "_callbackGasLimit",
         "type": "uint32",
         "internalType": "uint32"
+      },
+      {
+        "name": "_useNativePayment",
+        "type": "bool",
+        "internalType": "bool"
       }
     ],
     "stateMutability": "nonpayable"
@@ -69,6 +74,11 @@
         "name": "_maxPlayers",
         "type": "uint256",
         "internalType": "uint256"
+      },
+      {
+        "name": "_entryToken",
+        "type": "address",
+        "internalType": "address"
       }
     ],
     "outputs": [
@@ -115,6 +125,19 @@
         "name": "",
         "type": "address",
         "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "i_useNativePayment",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
       }
     ],
     "stateMutability": "view"

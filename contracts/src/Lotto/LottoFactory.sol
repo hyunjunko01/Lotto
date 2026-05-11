@@ -54,16 +54,17 @@ contract LottoFactory is VRFConsumerBaseV2Plus {
 
     /**
      * @notice Step 1: Create a new Lotto instance (EIP-1167 Clone)
-     * @param _entryFee Entry fee for the Lotto instance
+     * @param _entryFee Entry fee amount (ERC20 token units) for the Lotto instance
      * @param _maxPlayers Maximum number of players for the Lotto instance
+     * @param _entryToken ERC20 token used as entry/prize currency
      */
-    function createLotto(uint256 _entryFee, uint256 _maxPlayers) external returns (address) {
+    function createLotto(uint256 _entryFee, uint256 _maxPlayers, address _entryToken) external returns (address) {
         // 1. Deploy minimal proxy contract
         address clone = Clones.clone(i_implementation);
 
         // 2. Initialize (proxies cannot use constructors, so call directly)
         // ILotto is an interface or abstraction of the logic contract
-        ILotto(clone).initialize(_entryFee, _maxPlayers, address(this));
+        ILotto(clone).initialize(_entryFee, _maxPlayers, _entryToken, address(this));
 
         // 3. Register in management list
         allLottos.push(clone);

@@ -14,6 +14,8 @@ set +a
 
 CHAIN_ID="${ANVIL_CHAIN_ID:-31337}"
 FRONTEND_ENV_FILE="../frontend/.env.local"
+ENTRYPOINT_STANDARD_ADDRESS="0x433709009B8330FDa32311DF1C2AFA402eD8D009"
+AA_LIB_DIR="lib/account-abstraction"
 
 require_cmd() {
   local cmd="$1"
@@ -63,21 +65,75 @@ extract_create_address() {
 
 require_cmd forge
 require_cmd jq
+require_cmd cast
+require_cmd yarn
 
-echo "Running SetupEntryPoint..."
-forge script script/setup/SetupEntryPoint.s.sol --rpc-url "$ANVIL_RPC_URL" --private-key "$ANVIL_PRIVATE_KEY" --broadcast --code-size-limit 40000
+has_code_at_address() {
+  local rpc_url="$1"
+  local address="$2"
+  local code
 
-echo "Extracting entrypoint address from broadcast..."
-BROADCAST_JSON="broadcast/SetupEntryPoint.s.sol/${CHAIN_ID}/run-latest.json"
-require_file "$BROADCAST_JSON"
-ANVIL_ENTRY_POINT=$(extract_create_address "$BROADCAST_JSON" "EntryPoint")
+  code=$(cast code "$address" --rpc-url "$rpc_url" 2>/dev/null || true)
+  [[ -n "$code" && "$code" != "0x" ]]
+}
 
-if [[ -z "$ANVIL_ENTRY_POINT" ]] || [[ "$ANVIL_ENTRY_POINT" == "null" ]]; then
-  echo "Error: Could not extract entrypoint address"
-  exit 1
+lowercase() {
+  printf '%s' "$1" | tr '[:upper:]' '[:lower:]'
+}
+
+deploy_standard_entrypoint() {
+  echo "Deploying standard EntryPoint with account-abstraction deterministic deploy..."
+  require_file "$AA_LIB_DIR/package.json"
+  require_file "$AA_LIB_DIR/hardhat.config.ts"
+
+  (
+    cd "$AA_LIB_DIR"
+    if [[ ! -d node_modules ]]; then
+      echo "Installing account-abstraction deploy dependencies..."
+      yarn install --frozen-lockfile
+    fi
+
+    MNEMONIC_FILE="${MNEMONIC_FILE:-/tmp/lotto-aa-mnemonic-does-not-exist}" yarn deploy --network dev
+  )
+}
+
+assert_standard_entrypoint_healthy() {
+  local sender_creator
+  local sender_creator_entry_point
+
+  if ! has_code_at_address "$ANVIL_RPC_URL" "$ENTRYPOINT_STANDARD_ADDRESS"; then
+    echo "Error: standard EntryPoint address has no bytecode: $ENTRYPOINT_STANDARD_ADDRESS"
+    exit 1
+  fi
+
+  sender_creator=$(cast call "$ENTRYPOINT_STANDARD_ADDRESS" "senderCreator()(address)" --rpc-url "$ANVIL_RPC_URL" 2>/dev/null || true)
+  if [[ -z "$sender_creator" || "$sender_creator" == "0x0000000000000000000000000000000000000000" ]]; then
+    echo "Error: could not read EntryPoint senderCreator from $ENTRYPOINT_STANDARD_ADDRESS"
+    exit 1
+  fi
+
+  sender_creator_entry_point=$(cast call "$sender_creator" "entryPoint()(address)" --rpc-url "$ANVIL_RPC_URL" 2>/dev/null || true)
+  if [[ "$(lowercase "$sender_creator_entry_point")" != "$(lowercase "$ENTRYPOINT_STANDARD_ADDRESS")" ]]; then
+    echo "Error: standard EntryPoint is unhealthy."
+    echo "       senderCreator: $sender_creator"
+    echo "       senderCreator.entryPoint(): $sender_creator_entry_point"
+    echo "       expected: $ENTRYPOINT_STANDARD_ADDRESS"
+    echo "       Restart Anvil from a clean state and rerun make deploy."
+    exit 1
+  fi
+}
+
+if has_code_at_address "$ANVIL_RPC_URL" "$ENTRYPOINT_STANDARD_ADDRESS"; then
+  echo "Reusing existing standard EntryPoint address: $ENTRYPOINT_STANDARD_ADDRESS"
+else
+  deploy_standard_entrypoint
 fi
 
+assert_standard_entrypoint_healthy
+ANVIL_ENTRY_POINT="$ENTRYPOINT_STANDARD_ADDRESS"
+
 update_env_file .env ANVIL_ENTRY_POINT "$ANVIL_ENTRY_POINT"
+update_env_file "$FRONTEND_ENV_FILE" NEXT_PUBLIC_ENTRYPOINT_ADDRESS "$ANVIL_ENTRY_POINT"
 update_env_file "$FRONTEND_ENV_FILE" AA_ENTRYPOINT_ADDRESS "$ANVIL_ENTRY_POINT"
 
 echo "Running DeployAccount..."
@@ -100,5 +156,6 @@ echo "✓ Updated .env:"
 echo "  ANVIL_ENTRY_POINT=$ANVIL_ENTRY_POINT"
 echo "  ANVIL_ACCOUNT_FACTORY=$ANVIL_ACCOUNT_FACTORY"
 echo "✓ Updated frontend/.env.local:"
+echo "  NEXT_PUBLIC_ENTRYPOINT_ADDRESS=$ANVIL_ENTRY_POINT"
 echo "  AA_ENTRYPOINT_ADDRESS=$ANVIL_ENTRY_POINT"
 echo "  NEXT_PUBLIC_ACCOUNT_FACTORY_ADDRESS=$ANVIL_ACCOUNT_FACTORY"

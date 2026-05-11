@@ -13,6 +13,9 @@ docs/
 # Dotenv file
 .env
 
+# Root workspace install (pnpm-workspace.yaml); app lives in frontend/
+/node_modules
+
 # --- Frontend (Next.js) ---
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
@@ -58,3 +61,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# cursor
+.cursorrules
+
+.pnpm-store/
+
+tools/

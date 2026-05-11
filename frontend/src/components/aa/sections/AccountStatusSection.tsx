@@ -1,0 +1,47 @@
+'use client';
+
+import { formatEther } from 'viem';
+
+interface AccountStatusSectionProps {
+    status: string;
+    email: string;
+    accountAddress: string;
+    accountDeployed: boolean;
+    letBalance?: bigint | null;
+    signResultHash?: string;
+    bundlerResultHash?: string;
+}
+
+export function AccountStatusSection({
+    status,
+    email,
+    accountAddress,
+    accountDeployed,
+    letBalance,
+    signResultHash,
+    bundlerResultHash,
+}: AccountStatusSectionProps) {
+    return (
+        <div style={{ marginTop: 12, display: 'grid', gap: 6, color: '#d4eaee', fontSize: '0.9rem' }}>
+            <p style={{ margin: 0, wordBreak: 'break-all' }}>
+                <strong>status:</strong> {status}
+            </p>
+            <p style={{ margin: 0, wordBreak: 'break-all' }}>
+                <strong>email:</strong> {email || '-'}
+            </p>
+            <p style={{ margin: 0, wordBreak: 'break-all' }}>
+                <strong>account:</strong> {accountAddress ? `${accountAddress.slice(0, 10)}...` : '-'}
+                {accountDeployed && <span style={{ color: '#a8e6a1', marginLeft: 8 }}>(deployed)</span>}
+            </p>
+            <p style={{ margin: 0, wordBreak: 'break-all' }}>
+                <strong>LET balance:</strong> {letBalance !== null && letBalance !== undefined ? formatEther(letBalance) : '-'}
+            </p>
+            <p style={{ margin: 0, wordBreak: 'break-all', fontFamily: 'ui-monospace, Menlo, monospace' }}>
+                <strong>sign userOpHash:</strong> {signResultHash || '-'}
+            </p>
+            <p style={{ margin: 0, wordBreak: 'break-all', fontFamily: 'ui-monospace, Menlo, monospace' }}>
+                <strong>send userOpHash:</strong> {bundlerResultHash || '-'}
+            </p>
+        </div>
+    );
+}

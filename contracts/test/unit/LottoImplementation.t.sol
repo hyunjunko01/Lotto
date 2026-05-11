@@ -5,19 +5,19 @@ pragma solidity ^0.8.24;
 import {Test} from "forge-std/Test.sol";
 import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
 import {LottoImplementation} from "../../src/Lotto/LottoImplementation.sol";
+import {LottoEntryToken} from "../../src/Lotto/LottoEntryToken.sol";
 import {LottoFactoryMock} from "../mock/FactoryMock.sol";
-import {Rejector} from "../mock/Rejector.sol";
 
 contract LottoImplementationUnitTest is Test {
     LottoImplementation implementation; // logic implementation
     LottoImplementation lotto; // lotto proxy instance
     LottoFactoryMock factory; // mock factory to simulate VRF callback
-    Rejector rejector; // contract to simulate refund failure
+    LottoEntryToken entryToken;
 
     address player1 = makeAddr("player1");
     address player2 = makeAddr("player2");
     address player3 = makeAddr("player3");
-    address player4 = makeAddr("player4");
+    address nonWinner = makeAddr("nonWinner");
 
     uint256 constant ENTRY_FEE = 0.1 ether;
     uint256 constant MAX_PLAYERS = 3;
@@ -26,19 +26,21 @@ contract LottoImplementationUnitTest is Test {
     uint256 constant FULL = 1;
     uint256 constant CALCULATING = 2;
     uint256 constant CLOSED = 3;
+    uint256 constant REFUNDING = 4;
 
     function setUp() public {
         implementation = new LottoImplementation();
         factory = new LottoFactoryMock();
+        entryToken = new LottoEntryToken();
         address clone = Clones.clone(address(implementation));
 
         lotto = LottoImplementation(clone);
-        lotto.initialize(ENTRY_FEE, MAX_PLAYERS, address(factory));
+        lotto.initialize(ENTRY_FEE, MAX_PLAYERS, address(entryToken), address(factory));
 
-        vm.deal(player1, 1 ether);
-        vm.deal(player2, 1 ether);
-        vm.deal(player3, 1 ether);
-        vm.deal(player4, 1 ether);
+        entryToken.mint(player1, 10 ether);
+        entryToken.mint(player2, 10 ether);
+        entryToken.mint(player3, 10 ether);
+        entryToken.mint(nonWinner, 10 ether);
     }
 
     // --- joinLotto function tests ---
@@ -52,47 +54,33 @@ contract LottoImplementationUnitTest is Test {
         assertEq(lotto.getLottoBalance(), 3 * ENTRY_FEE);
     }
 
-    function test_joinLotto_ExcessRefund() external {
-        vm.prank(player1);
-        lotto.joinLotto{value: 0.2 ether}();
-        assertEq(player1.balance, 1 ether - ENTRY_FEE); // Excess 0.1 ether should be refunded
-    }
-
     function test_joinLotto_RevertWhenLottoIsFull() external {
         _makeLottoFull();
-        vm.prank(player4);
+        vm.startPrank(nonWinner);
+        entryToken.approve(address(lotto), ENTRY_FEE);
         vm.expectRevert(LottoImplementation.Lotto__IsFull.selector);
-        lotto.joinLotto{value: ENTRY_FEE}();
+        lotto.joinLotto();
+        vm.stopPrank();
     }
 
     function test_joinLotto_RevertWhenLottoIsNotOpen() external {
         _makeLottoFull();
-
-        // Directly manipulate the storage to set lottoState to CALCULATING
-        bytes32 currentSlotData = vm.load(address(lotto), bytes32(uint256(4)));
-
-        bytes32 newData = currentSlotData | bytes32(uint256(2) << 22 * 8); // Set lottoState to CALCULATING (2)
-
-        vm.store(address(lotto), bytes32(uint256(4)), newData);
-
-        vm.prank(player4);
+        lotto.requestWinner();
+        vm.startPrank(nonWinner);
+        entryToken.approve(address(lotto), ENTRY_FEE);
         vm.expectRevert(LottoImplementation.Lotto__IsNotOpen.selector);
-        lotto.joinLotto{value: ENTRY_FEE}();
+        lotto.joinLotto();
+        vm.stopPrank();
     }
 
-    function test_joinLotto_RevertWhenNotEnoughEther() external {
-        vm.prank(player1);
+    function test_joinLotto_RevertWhenNotEnoughToken() external {
+        address poorPlayer = makeAddr("poorPlayer");
+        entryToken.mint(poorPlayer, ENTRY_FEE - 1);
+        vm.startPrank(poorPlayer);
+        entryToken.approve(address(lotto), ENTRY_FEE);
         vm.expectRevert(LottoImplementation.Lotto__InsufficientEntryFee.selector);
-        lotto.joinLotto{value: 0.01 ether}();
-    }
-
-    function test_joinLotto_RevertWhenRefundFails() external {
-        rejector = new Rejector();
-
-        vm.deal(address(rejector), 1 ether);
-
-        vm.expectRevert(LottoImplementation.Lotto__RefundFailed.selector);
-        rejector.joinLotto(address(lotto), 0.2 ether);
+        lotto.joinLotto();
+        vm.stopPrank();
     }
 
     // --- requestWinner function tests ---
@@ -111,15 +99,8 @@ contract LottoImplementationUnitTest is Test {
 
     function test_requestWinner_RevertWhenAlreadyRequested() external {
         _makeLottoFull();
-
-        // Directly manipulate the storage to set isRandomnessRequested to true
-        bytes32 currentSlotData = vm.load(address(lotto), bytes32(uint256(4)));
-
-        bytes32 newData = currentSlotData | bytes32(uint256(1) << 20 * 8);
-
-        vm.store(address(lotto), bytes32(uint256(4)), newData);
-
-        vm.expectRevert(LottoImplementation.Lotto__AlreadyRequested.selector);
+        lotto.requestWinner();
+        vm.expectRevert(LottoImplementation.Lotto__IsNotFull.selector);
         lotto.requestWinner();
     }
 
@@ -137,6 +118,24 @@ contract LottoImplementationUnitTest is Test {
         // The winner should be player1 since randomNumber % 3 == 0
         assertEq(lotto.winner(), player1);
         assertEq(uint256(lotto.lottoState()), CLOSED);
+    }
+
+    function test_triggerRefundMode_RevertWhenTimeoutNotElapsed() external {
+        _makeLottoFull();
+        lotto.requestWinner();
+
+        vm.expectRevert(LottoImplementation.Lotto__CalculatingTimeoutNotElapsed.selector);
+        lotto.triggerRefundMode();
+    }
+
+    function test_triggerRefundMode_EnablesRefundingAfterTimeout() external {
+        _makeLottoFull();
+        lotto.requestWinner();
+
+        vm.warp(block.timestamp + lotto.CALCULATING_TIMEOUT() + 1);
+        lotto.triggerRefundMode();
+
+        assertEq(uint256(lotto.lottoState()), REFUNDING);
     }
 
     function test_finalizeWinner_RevertWhenNotCalculating() external {
@@ -165,11 +164,10 @@ contract LottoImplementationUnitTest is Test {
         vm.prank(address(factory));
         lotto.finalizeWinner(randomNumber);
 
-        // Simulate the winner withdrawing the prize
-        uint256 winnerInitialBalance = player1.balance;
+        uint256 winnerInitialBalance = entryToken.balanceOf(player1);
         vm.prank(player1);
         lotto.withdrawPrize();
-        uint256 winnerFinalBalance = player1.balance;
+        uint256 winnerFinalBalance = entryToken.balanceOf(player1);
 
         // The winner's balance should increase by the prize amount (3 * ENTRY_FEE)
         assertEq(winnerFinalBalance - winnerInitialBalance, 3 * ENTRY_FEE);
@@ -179,6 +177,72 @@ contract LottoImplementationUnitTest is Test {
         vm.prank(player1);
         vm.expectRevert(LottoImplementation.Lotto__IsNotClosed.selector);
         lotto.withdrawPrize();
+    }
+
+    function test_claimRefund_SuccessAfterTimeout() external {
+        _makeLottoFull();
+        lotto.requestWinner();
+        vm.warp(block.timestamp + lotto.CALCULATING_TIMEOUT() + 1);
+        lotto.triggerRefundMode();
+
+        uint256 before = entryToken.balanceOf(player1);
+        vm.prank(player1);
+        lotto.claimRefund();
+        uint256 afterBal = entryToken.balanceOf(player1);
+
+        assertEq(afterBal - before, ENTRY_FEE);
+        assertEq(lotto.refundableAmount(player1), 0);
+    }
+
+    function test_claimRefund_SuccessWithMultipleEntries() external {
+        address clone = Clones.clone(address(implementation));
+        LottoImplementation lottoMulti = LottoImplementation(clone);
+        lottoMulti.initialize(ENTRY_FEE, 4, address(entryToken), address(factory));
+
+        vm.startPrank(player1);
+        entryToken.approve(address(lottoMulti), ENTRY_FEE * 2);
+        lottoMulti.joinLotto();
+        lottoMulti.joinLotto();
+        vm.stopPrank();
+
+        vm.startPrank(player2);
+        entryToken.approve(address(lottoMulti), ENTRY_FEE);
+        lottoMulti.joinLotto();
+        vm.stopPrank();
+
+        vm.startPrank(player3);
+        entryToken.approve(address(lottoMulti), ENTRY_FEE);
+        lottoMulti.joinLotto();
+        vm.stopPrank();
+
+        lottoMulti.requestWinner();
+        vm.warp(block.timestamp + lottoMulti.CALCULATING_TIMEOUT() + 1);
+        lottoMulti.triggerRefundMode();
+
+        uint256 before = entryToken.balanceOf(player1);
+        vm.prank(player1);
+        lottoMulti.claimRefund();
+        uint256 afterBal = entryToken.balanceOf(player1);
+
+        assertEq(afterBal - before, ENTRY_FEE * 2);
+        assertEq(lottoMulti.refundableAmount(player1), 0);
+    }
+
+    function test_claimRefund_RevertWhenNotRefunding() external {
+        vm.prank(player1);
+        vm.expectRevert(LottoImplementation.Lotto__IsNotRefunding.selector);
+        lotto.claimRefund();
+    }
+
+    function test_claimRefund_RevertWhenNoBalance() external {
+        _makeLottoFull();
+        lotto.requestWinner();
+        vm.warp(block.timestamp + lotto.CALCULATING_TIMEOUT() + 1);
+        lotto.triggerRefundMode();
+
+        vm.prank(nonWinner);
+        vm.expectRevert(LottoImplementation.Lotto__NoRefundableBalance.selector);
+        lotto.claimRefund();
     }
 
     function test_withdrawPrize_RevertWhenNotWinner() external {
@@ -213,36 +277,22 @@ contract LottoImplementationUnitTest is Test {
         lotto.withdrawPrize();
     }
 
-    function test_withdrawPrize_RevertWhenTransferFails() external {
-        address newLottoAddress = Clones.clone(address(implementation));
-        LottoImplementation newLotto = LottoImplementation(newLottoAddress);
-
-        newLotto.initialize(ENTRY_FEE, 1, address(factory));
-
-        rejector = new Rejector();
-        vm.deal(address(rejector), 1 ether);
-
-        rejector.joinLotto(address(newLotto), ENTRY_FEE);
-
-        newLotto.requestWinner();
-
-        uint256 randomNumber = 123;
-        vm.prank(address(factory));
-        newLotto.finalizeWinner(randomNumber);
-
-        vm.expectRevert(LottoImplementation.Lotto__TransferFailed.selector);
-        rejector.withdrawPrize(address(newLotto));
-    }
     // --- helper functions ---
 
     function _makeLottoFull() internal {
-        vm.prank(player1);
-        lotto.joinLotto{value: ENTRY_FEE}();
+        vm.startPrank(player1);
+        entryToken.approve(address(lotto), ENTRY_FEE);
+        lotto.joinLotto();
+        vm.stopPrank();
 
-        vm.prank(player2);
-        lotto.joinLotto{value: ENTRY_FEE}();
+        vm.startPrank(player2);
+        entryToken.approve(address(lotto), ENTRY_FEE);
+        lotto.joinLotto();
+        vm.stopPrank();
 
-        vm.prank(player3);
-        lotto.joinLotto{value: ENTRY_FEE}();
+        vm.startPrank(player3);
+        entryToken.approve(address(lotto), ENTRY_FEE);
+        lotto.joinLotto();
+        vm.stopPrank();
     }
 }

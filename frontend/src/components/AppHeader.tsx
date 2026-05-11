@@ -1,9 +1,15 @@
 'use client';
 
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 
 export function AppHeader() {
+    const pathname = usePathname();
+
+    const isAaRoute = pathname.startsWith('/aa');
+    const isMetamaskRoute = pathname.startsWith('/metamask');
+
     const linkStyle = {
         color: '#cfe9ee',
         textDecoration: 'none',
@@ -34,18 +40,52 @@ export function AppHeader() {
                     flexWrap: 'wrap',
                 }}
             >
-                <nav style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                    <Link href="/" style={linkStyle}>
-                        Home
-                    </Link>
-                    <Link href="/create-lottery" style={linkStyle}>
-                        Create
-                    </Link>
-                    <Link href="/join-lottery" style={linkStyle}>
-                        Join
-                    </Link>
-                </nav>
-                <ConnectButton />
+                {isAaRoute ? (
+                    <nav style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                        <Link href="/" style={linkStyle}>
+                            Home
+                        </Link>
+                        <Link href="/aa" style={linkStyle}>
+                            Web3Auth AA
+                        </Link>
+                        <Link href="/aa/create-lottery" style={linkStyle}>
+                            Create
+                        </Link>
+                        <Link href="/aa/join-lottery" style={linkStyle}>
+                            Join
+                        </Link>
+                    </nav>
+                ) : isMetamaskRoute ? (
+                    <>
+                        <nav style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                            <Link href="/" style={linkStyle}>
+                                Home
+                            </Link>
+                            <Link href="/metamask" style={linkStyle}>
+                                MetaMask Home
+                            </Link>
+                            <Link href="/metamask/create-lottery" style={linkStyle}>
+                                Create
+                            </Link>
+                            <Link href="/metamask/join-lottery" style={linkStyle}>
+                                Join
+                            </Link>
+                        </nav>
+                        <ConnectButton />
+                    </>
+                ) : (
+                    <nav style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                        <Link href="/" style={linkStyle}>
+                            Home
+                        </Link>
+                        <Link href="/aa" style={linkStyle}>
+                            Web3Auth AA
+                        </Link>
+                        <Link href="/metamask" style={linkStyle}>
+                            MetaMask
+                        </Link>
+                    </nav>
+                )}
             </div>
         </header>
     );

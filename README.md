@@ -1,45 +1,133 @@
 # Lotto-AA
 
-A scalable Web3 lottery application designed for seamless user experience.
+`Lotto-AA` is a lottery dApp portfolio project with two user paths:
 
-## 🏗 Contracts
+- **MetaMask (EOA) flow**
+- **Web3Auth + ERC-4337 Account Abstraction (AA) flow**
 
-### Core Logic
-- Leverages **Chainlink VRF** for verifiable, tamper-proof randomness to ensure fair winner selection.
+The project uses **Chainlink VRF** for winner randomness and includes a **deadlock recovery path** when VRF callback is delayed.
 
-### Architecture
-Implemented using the **Factory-Clone Pattern** for maximum efficiency.
+## What This Project Demonstrates
 
-- **LottoFactory**: Manages the lifecycle of lottery instances and serves as the central gateway for Chainlink VRF requests.
-- **LottoImplementation**: Contains the core game logic. Deployed as a **Minimal Proxy (EIP-1167)** to ensure high scalability and minimize deployment gas costs.
+- Clone-based lottery deployment with `LottoFactory` + `LottoImplementation` (EIP-1167 style)
+- Verifiable winner selection through Chainlink VRF
+- ERC-4337 user operation flow (sign + bundler submit)
+- Selector-restricted paymaster policy for sponsored actions
+- Recovery design for a stuck `CALCULATING` state
 
-## 🛡 Account Abstraction (AA)
-- Integrates **Account Abstraction (ERC-4337)** to lower the barrier to entry, providing a Web2-like UX (e.g., gasless transactions, social login) for Web3 newcomers.
+## Core Contract Architecture
 
-## 📁 Project Structure
+- `LottoFactory`
+  - Deploys lottery instances
+  - Tracks valid instance addresses
+  - Requests and receives VRF randomness
+  - Forwards randomness to each instance
+- `LottoImplementation`
+  - Handles join/request/finalize/withdraw logic
+  - Supports timeout-based refund mode when VRF is stuck
+- `LottoPaymaster`
+  - Allows only approved selectors on approved targets
+  - Used for AA-sponsored operations
+
+## Lotto State Machine
+
+Normal flow:
+
+`OPEN -> FULL -> CALCULATING -> CLOSED`
+
+- `OPEN`: users can join
+- `FULL`: users can request winner
+- `CALCULATING`: waiting for VRF callback
+- `CLOSED`: winner can withdraw prize
+
+Recovery flow (deadlock handling):
+
+`CALCULATING --(timeout + triggerRefundMode)--> REFUNDING`
+
+- `REFUNDING`: participants claim refunds via `claimRefund()`
+
+## Deadlock Recovery (CALCULATING Timeout)
+
+If a lottery stays in `CALCULATING` too long:
+
+1. Anyone calls `triggerRefundMode()` after `CALCULATING_TIMEOUT`
+2. State moves to `REFUNDING`
+3. Each participant calls `claimRefund()` for their refundable amount
+
+Notes:
+
+- `triggerRefundMode()` reverts before timeout (by design)
+- Refunds are tracked per address and support multiple joins from one address
+
+## Frontend Paths
+
+- `/metamask`
+  - Standard EOA transaction flow with wallet connection
+- `/aa`
+  - Web3Auth login + AA account flow
+  - UserOp signing and bundler submission
+
+Both detail pages include:
+
+- `requestWinner`
+- `triggerRefundMode`
+- `withdrawPrize` / `claimRefund` depending on state
+
+## Repository Structure
 
 ```text
 contracts/
-	script/
-		config/
-			HelperConfig.s.sol        # Reads env-driven deployment config
-		setup/
-			SetupEntryPoint.s.sol     # Deploys EntryPoint
-			SetupVrf.s.sol            # Deploys VRF mock + subscription setup logic
-		deploy/
-			DeployAccount.s.sol       # Deploys AA account system using HelperConfig
-			DeployLotto.s.sol         # Deploys Lotto system using HelperConfig
-	test/
-		Integration/                # Integration tests (env-independent local setup)
-		unit/
+  src/
+    Lotto/
+    Account/Ethereum/
+  script/
+    config/
+    setup/
+    deploy/
+  test/
+    unit/
+    Integration/
+
+frontend/
+  src/
+    app/
+    hooks/
+    components/
 
 scripts/
-	setup_entrypoint.sh           # Broadcast + receipt parsing + .env update
-	setup_vrf.sh                  # Broadcast + receipt parsing + .env update
+  setup_entrypoint.sh
+  setup_vrf.sh
 ```
 
-## 🔄 Workflow Split
+## Testing
 
-- **Deployment path**: `scripts/*.sh` + `contracts/script/config/HelperConfig.s.sol`
-- **Test path**: integration tests deploy dependencies locally in `setUp()` and do not rely on `.env` or receipt parsing
+Run contract tests from repo root:
+
+```bash
+forge test --root contracts
+```
+
+Focused suites:
+
+```bash
+forge test --root contracts --match-path test/unit/LottoImplementation.t.sol
+forge test --root contracts --match-path test/Integration/LottoSystem.t.sol
+forge test --root contracts --match-path test/Integration/LottoPaymaster.t.sol
+```
+
+## Deployment/Operation Notes
+
+- Use testnet/local networks only for demo/testing.
+- Keep paymaster funded if using sponsored AA operations.
+- Ensure paymaster selector allowlist includes all intended Lotto actions:
+  - `joinLotto`
+  - `requestWinner`
+  - `withdrawPrize`
+  - `triggerRefundMode`
+  - `claimRefund`
+
+## Current Scope
+
+This repository is intended as a **testnet portfolio project** and technical demonstration.
+It is not production-hardened for real-money operation.
 

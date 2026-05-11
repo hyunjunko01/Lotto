@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import { GoogleAaPanel } from '@/components/GoogleAaPanel';
 
 export default function HomePage() {
     return (
@@ -19,32 +18,35 @@ export default function HomePage() {
                 <section
                     style={{
                         marginTop: 0,
-                        padding: 20,
+                        padding: 24,
                         border: '1px solid #3e5a60',
-                        borderRadius: 14,
+                        borderRadius: 18,
                         background: 'linear-gradient(160deg, rgba(10, 35, 44, 0.92), rgba(12, 20, 30, 0.9))',
                     }}
                 >
-                    <p
+                    <div
                         style={{
-                            display: 'inline-block',
-                            margin: 0,
-                            padding: '4px 10px',
-                            borderRadius: 999,
-                            background: '#153740',
-                            color: '#9fd6df',
-                            fontSize: 12,
-                            fontWeight: 700,
-                            letterSpacing: 0.4,
-                            textTransform: 'uppercase',
+                            width: 80,
+                            height: 80,
+                            borderRadius: 18,
+                            display: 'grid',
+                            placeItems: 'center',
+                            background: 'linear-gradient(135deg, #1ca7bb 0%, #0b4f73 100%)',
+                            boxShadow: '0 8px 24px rgba(15, 110, 136, 0.35)',
+                            color: '#ecf8ff',
+                            fontSize: 40,
+                            fontWeight: 800,
+                            letterSpacing: 1,
                         }}
                     >
-                        Lottery Dashboard
-                    </p>
+                        L
+                    </div>
                     <h1 style={{ margin: '12px 0 0', fontSize: 'clamp(1.8rem, 3vw, 2.5rem)', lineHeight: 1.18 }}>
-                        Tyler&apos;s Lotto DApp
+                        Lotto DApp
                     </h1>
-                    <p style={{ marginTop: 12, color: '#b8cdcf', lineHeight: 1.55 }}>Choose one action to continue.</p>
+                    <p style={{ marginTop: 12, color: '#b8cdcf', lineHeight: 1.55 }}>
+                        Choose your entry path first. The Web3Auth AA and MetaMask experiences are separated.
+                    </p>
                 </section>
 
                 <section
@@ -60,42 +62,40 @@ export default function HomePage() {
                     }}
                 >
                     <Link
-                        href="/create-lottery"
+                        href="/aa"
                         style={{
                             display: 'block',
                             textAlign: 'center',
                             padding: '12px 16px',
                             borderRadius: 10,
-                            border: '1px solid #76b4be',
-                            background: 'linear-gradient(135deg, #0f7f8f, #155a8a)',
+                            border: '1px solid #93d8e3',
+                            background: 'linear-gradient(135deg, #1291a2, #145e8f)',
                             color: '#ecf8ff',
                             fontWeight: 700,
                             letterSpacing: 0.2,
                             textDecoration: 'none',
                         }}
                     >
-                        create lottery
+                        Use Web3Auth AA Account
                     </Link>
                     <Link
-                        href="/join-lottery"
+                        href="/metamask"
                         style={{
                             display: 'block',
                             textAlign: 'center',
                             padding: '12px 16px',
                             borderRadius: 10,
-                            border: '1px solid #76b4be',
-                            background: 'linear-gradient(135deg, #0f7f8f, #155a8a)',
+                            border: '1px solid #ffd3a3',
+                            background: 'linear-gradient(135deg, #d1842d, #965326)',
                             color: '#ecf8ff',
                             fontWeight: 700,
                             letterSpacing: 0.2,
                             textDecoration: 'none',
                         }}
                     >
-                        join lottery
+                        Use MetaMask Wallet
                     </Link>
                 </section>
-
-                <GoogleAaPanel />
             </div>
         </main>
     );

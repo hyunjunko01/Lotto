@@ -13,6 +13,7 @@ source .env
 set +a
 
 CHAIN_ID="${ANVIL_CHAIN_ID:-31337}"
+MOCK_LINK_FUND_AMOUNT="${ANVIL_VRF_FUND_AMOUNT:-100000000000000000000}"
 
 require_cmd() {
   local cmd="$1"
@@ -103,9 +104,15 @@ if [[ -z "$SUB_ID" ]] || [[ "$SUB_ID" == "null" ]]; then
   exit 1
 fi
 
+echo "Funding VRF subscription..."
+cast send "$COORDINATOR" "fundSubscription(uint256,uint256)" "$SUB_ID" "$MOCK_LINK_FUND_AMOUNT" \
+  --rpc-url "$ANVIL_RPC_URL" \
+  --private-key "$ANVIL_PRIVATE_KEY" > /dev/null
+
 update_env_file .env ANVIL_VRF_COORDINATOR "$COORDINATOR"
 update_env_file .env ANVIL_SUBSCRIPTION_ID "$SUB_ID"
 
 echo "✓ Updated .env:"
 echo "  ANVIL_VRF_COORDINATOR=$COORDINATOR"
 echo "  ANVIL_SUBSCRIPTION_ID=$SUB_ID"
+echo "  Funded subscription with $MOCK_LINK_FUND_AMOUNT"
