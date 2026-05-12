@@ -28,6 +28,9 @@ contract ConfigureVrfConsumer is Script {
         if (block.chainid == 11155111) {
             return vm.envAddress("SEPOLIA_LOTTO_FACTORY");
         }
+        if (block.chainid == 84532) {
+            return vm.envAddress("BASE_SEPOLIA_LOTTO_FACTORY");
+        }
         revert ConfigureVrfConsumer__MissingLottoFactoryEnv(block.chainid);
     }
 }

@@ -39,6 +39,9 @@ contract DeployPaymaster is Script {
         if (block.chainid == 11155111) {
             return vm.envAddress("SEPOLIA_LOTTO_FACTORY");
         }
+        if (block.chainid == 84532) {
+            return vm.envAddress("BASE_SEPOLIA_LOTTO_FACTORY");
+        }
         revert("Unsupported chain for lotto factory env");
     }
 
@@ -48,6 +51,9 @@ contract DeployPaymaster is Script {
         }
         if (block.chainid == 11155111) {
             return vm.envAddress("SEPOLIA_ENTRY_TOKEN");
+        }
+        if (block.chainid == 84532) {
+            return vm.envAddress("BASE_SEPOLIA_ENTRY_TOKEN");
         }
         revert("Unsupported chain for entry token env");
     }

@@ -12,6 +12,9 @@ contract HelperConfig is Script {
     error HelperConfig__MissingSepoliaVrfEnv();
     error HelperConfig__MissingSepoliaPrivateKeyEnv();
     error HelperConfig__MissingSepoliaEntryPointEnv();
+    error HelperConfig__MissingBaseSepoliaVrfEnv();
+    error HelperConfig__MissingBaseSepoliaPrivateKeyEnv();
+    error HelperConfig__MissingBaseSepoliaEntryPointEnv();
 
     struct NetworkConfig {
         address vrfCoordinator;
@@ -37,6 +40,8 @@ contract HelperConfig is Script {
             activeNetworkConfig = getOrCreateAnvilConfig();
         } else if (block.chainid == 11155111) {
             activeNetworkConfig = getSepoliaConfig();
+        } else if (block.chainid == 84532) {
+            activeNetworkConfig = getBaseSepoliaConfig();
         } else {
             revert HelperConfig__UnsupportedChain(block.chainid);
         }
@@ -100,7 +105,36 @@ contract HelperConfig is Script {
             keyHash: keyHash,
             subscriptionId: subscriptionId,
             callbackGasLimit: callbackGasLimit,
-            useNativePayment: false,
+            useNativePayment: true,
+            account: vm.addr(deployerPrivateKey),
+            entryPoint: entryPoint
+        });
+    }
+
+    function getBaseSepoliaConfig() public view returns (NetworkConfig memory) {
+        address entryPoint = vm.envOr("BASE_SEPOLIA_ENTRY_POINT", address(0));
+        address coordinator = vm.envOr("BASE_SEPOLIA_VRF_COORDINATOR", address(0));
+        bytes32 keyHash = vm.envOr("BASE_SEPOLIA_VRF_KEYHASH", bytes32(0));
+        uint256 subscriptionId = vm.envOr("BASE_SEPOLIA_SUBSCRIPTION_ID", uint256(0));
+        uint32 callbackGasLimit = uint32(vm.envOr("BASE_SEPOLIA_CALLBACK_GAS_LIMIT", uint256(250000)));
+        uint256 deployerPrivateKey = vm.envOr("BASE_SEPOLIA_PRIVATE_KEY", uint256(0));
+
+        if (entryPoint == address(0)) {
+            revert HelperConfig__MissingBaseSepoliaEntryPointEnv();
+        }
+        if (coordinator == address(0) || keyHash == bytes32(0) || subscriptionId == 0) {
+            revert HelperConfig__MissingBaseSepoliaVrfEnv();
+        }
+        if (deployerPrivateKey == 0) {
+            revert HelperConfig__MissingBaseSepoliaPrivateKeyEnv();
+        }
+
+        return NetworkConfig({
+            vrfCoordinator: coordinator,
+            keyHash: keyHash,
+            subscriptionId: subscriptionId,
+            callbackGasLimit: callbackGasLimit,
+            useNativePayment: true,
             account: vm.addr(deployerPrivateKey),
             entryPoint: entryPoint
         });
