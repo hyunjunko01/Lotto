@@ -11,6 +11,7 @@ contract HelperConfig is Script {
     error HelperConfig__MissingAnvilEntryPointEnv();
     error HelperConfig__MissingSepoliaVrfEnv();
     error HelperConfig__MissingSepoliaPrivateKeyEnv();
+    error HelperConfig__MissingSepoliaEntryPointEnv();
 
     struct NetworkConfig {
         address vrfCoordinator;
@@ -30,7 +31,6 @@ contract HelperConfig is Script {
 
     // address constant FOUNDRY_DEFAULT_WALLET = 0x1804c8AB1F12E6bbf3894d4083f33e07309d1f38;
     address constant ANVIL_DEFAULT_ACCOUNT = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
-    address constant SEPOLIA_ENTRY_POINT = 0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789;
 
     constructor() {
         if (block.chainid == 31337) {
@@ -78,12 +78,16 @@ contract HelperConfig is Script {
     }
 
     function getSepoliaConfig() public view returns (NetworkConfig memory) {
+        address entryPoint = vm.envOr("SEPOLIA_ENTRY_POINT", address(0));
         address coordinator = vm.envOr("SEPOLIA_VRF_COORDINATOR", address(0));
         bytes32 keyHash = vm.envOr("SEPOLIA_VRF_KEYHASH", bytes32(0));
         uint256 subscriptionId = vm.envOr("SEPOLIA_SUBSCRIPTION_ID", uint256(0));
         uint32 callbackGasLimit = uint32(vm.envOr("SEPOLIA_CALLBACK_GAS_LIMIT", uint256(500000)));
         uint256 deployerPrivateKey = vm.envOr("SEPOLIA_PRIVATE_KEY", uint256(0));
 
+        if (entryPoint == address(0)) {
+            revert HelperConfig__MissingSepoliaEntryPointEnv();
+        }
         if (coordinator == address(0) || keyHash == bytes32(0) || subscriptionId == 0) {
             revert HelperConfig__MissingSepoliaVrfEnv();
         }
@@ -98,7 +102,7 @@ contract HelperConfig is Script {
             callbackGasLimit: callbackGasLimit,
             useNativePayment: false,
             account: vm.addr(deployerPrivateKey),
-            entryPoint: SEPOLIA_ENTRY_POINT
+            entryPoint: entryPoint
         });
     }
 }
