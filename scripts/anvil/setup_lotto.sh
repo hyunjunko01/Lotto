@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-cd "$(dirname "$0")/../contracts"
+cd "$(dirname "$0")/../../contracts"
 
 if [[ ! -f .env ]]; then
   echo "Error: contracts/.env not found"

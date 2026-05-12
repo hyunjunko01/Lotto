@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 BUNDLER_DIR="$ROOT_DIR/tools/alto"
 CONTRACTS_ENV_FILE="$ROOT_DIR/contracts/.env"
 ENV_FILE="$ROOT_DIR/frontend/.env.local"
