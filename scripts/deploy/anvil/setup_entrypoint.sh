@@ -14,7 +14,7 @@ set +a
 
 CHAIN_ID="${ANVIL_CHAIN_ID:-31337}"
 FRONTEND_ENV_FILE="../frontend/.env.local"
-ENTRYPOINT_STANDARD_ADDRESS="0x433709009B8330FDa32311DF1C2AFA402eD8D009"
+ENTRYPOINT_STANDARD_ADDRESS="0x0000000071727De22E5E9d8BAf0edAc6f37da032"
 AA_LIB_DIR="lib/account-abstraction"
 
 require_cmd() {
@@ -110,7 +110,7 @@ deploy_standard_entrypoint() {
 
   (
     cd "$AA_LIB_DIR"
-    if [[ ! -d node_modules ]]; then
+    if [[ ! -d node_modules ]] || [[ ! -d node_modules/@nomiclabs/hardhat-etherscan ]]; then
       echo "Installing account-abstraction deploy dependencies..."
       yarn install --frozen-lockfile
     fi
@@ -120,27 +120,19 @@ deploy_standard_entrypoint() {
 }
 
 assert_standard_entrypoint_healthy() {
-  local sender_creator
-  local sender_creator_entry_point
+  local nonce_probe
 
   if ! has_code_at_address "$ANVIL_RPC_URL" "$ENTRYPOINT_STANDARD_ADDRESS"; then
     echo "Error: standard EntryPoint address has no bytecode: $ENTRYPOINT_STANDARD_ADDRESS"
     exit 1
   fi
 
-  sender_creator=$(cast call "$ENTRYPOINT_STANDARD_ADDRESS" "senderCreator()(address)" --rpc-url "$ANVIL_RPC_URL" 2>/dev/null || true)
-  if [[ -z "$sender_creator" || "$sender_creator" == "0x0000000000000000000000000000000000000000" ]]; then
-    echo "Error: could not read EntryPoint senderCreator from $ENTRYPOINT_STANDARD_ADDRESS"
-    exit 1
-  fi
-
-  sender_creator_entry_point=$(cast call "$sender_creator" "entryPoint()(address)" --rpc-url "$ANVIL_RPC_URL" 2>/dev/null || true)
-  if [[ "$(lowercase "$sender_creator_entry_point")" != "$(lowercase "$ENTRYPOINT_STANDARD_ADDRESS")" ]]; then
-    echo "Error: standard EntryPoint is unhealthy."
-    echo "       senderCreator: $sender_creator"
-    echo "       senderCreator.entryPoint(): $sender_creator_entry_point"
-    echo "       expected: $ENTRYPOINT_STANDARD_ADDRESS"
-    echo "       Restart Anvil from a clean state and rerun make deploy."
+  # v0.7 EntryPoint sanity probe: getNonce(address,uint192) must be callable.
+  nonce_probe=$(cast call "$ENTRYPOINT_STANDARD_ADDRESS" "getNonce(address,uint192)(uint256)" \
+    "0x0000000000000000000000000000000000000000" "0" \
+    --rpc-url "$ANVIL_RPC_URL" 2>/dev/null || true)
+  if [[ -z "$nonce_probe" ]]; then
+    echo "Error: EntryPoint getNonce probe failed at $ENTRYPOINT_STANDARD_ADDRESS"
     exit 1
   fi
 }
@@ -156,7 +148,7 @@ ANVIL_ENTRY_POINT="$ENTRYPOINT_STANDARD_ADDRESS"
 
 update_env_file .env ANVIL_ENTRY_POINT "$ANVIL_ENTRY_POINT"
 update_env_file "$FRONTEND_ENV_FILE" NEXT_PUBLIC_CHAIN_ID "$CHAIN_ID"
-update_env_file "$FRONTEND_ENV_FILE" NEXT_PUBLIC_CHAIN_NAME "Anvil Local"
+update_env_file "$FRONTEND_ENV_FILE" NEXT_PUBLIC_CHAIN_NAME "\"Anvil Local\""
 update_env_file "$FRONTEND_ENV_FILE" NEXT_PUBLIC_RPC_URL "$ANVIL_RPC_URL"
 update_env_file "$FRONTEND_ENV_FILE" AA_RPC_URL "$ANVIL_RPC_URL"
 update_env_file "$FRONTEND_ENV_FILE" AA_BUNDLER_URL "${AA_BUNDLER_URL:-http://127.0.0.1:4337/rpc}"

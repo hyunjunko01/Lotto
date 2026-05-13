@@ -123,6 +123,24 @@ function splitInitCode(initCode: `0x${string}`): { factory?: `0x${string}`; fact
     return { factory, factoryData };
 }
 
+function toV07RpcUserOp(userOp: PackedUserOperation) {
+    const { verificationGasLimit, callGasLimit } = unpackAccountGasLimits(userOp.accountGasLimits);
+    const { maxFeePerGas, maxPriorityFeePerGas } = unpackGasFees(userOp.gasFees);
+    return {
+        sender: userOp.sender,
+        nonce: toRpcHex(userOp.nonce),
+        initCode: userOp.initCode,
+        callData: userOp.callData,
+        callGasLimit: toRpcHex(callGasLimit),
+        verificationGasLimit: toRpcHex(verificationGasLimit),
+        preVerificationGas: toRpcHex(userOp.preVerificationGas),
+        maxFeePerGas: toRpcHex(maxFeePerGas),
+        maxPriorityFeePerGas: toRpcHex(maxPriorityFeePerGas),
+        paymasterAndData: userOp.paymasterAndData,
+        signature: userOp.signature,
+    };
+}
+
 function splitPaymasterAndData(paymasterAndData: `0x${string}`): {
     paymaster?: `0x${string}`;
     paymasterVerificationGasLimit?: `0x${string}`;
@@ -239,26 +257,12 @@ export async function buildCreateAAAccountInitCode(ownerAddress: `0x${string}`, 
 
 export async function sendAAUserOperationToBundler(userOp: PackedUserOperation): Promise<{ userOpHash: string }> {
     const entryPoint = getEntryPointAddress();
+    const v07RpcPayload = toV07RpcUserOp(userOp);
     const { verificationGasLimit, callGasLimit } = unpackAccountGasLimits(userOp.accountGasLimits);
     const { maxFeePerGas, maxPriorityFeePerGas } = unpackGasFees(userOp.gasFees);
     const factoryParts = splitInitCode(userOp.initCode);
     const paymasterParts = splitPaymasterAndData(userOp.paymasterAndData);
-
-    // Matches `EntryPoint.getUserOpHash` input (v0.7 packed). Send this first so the bundler does not
-    // repack gas fields differently from the client-signed op (avoids simulation AA24).
-    const packedV07Payload = {
-        sender: userOp.sender,
-        nonce: toRpcHex(userOp.nonce),
-        initCode: userOp.initCode,
-        callData: userOp.callData,
-        accountGasLimits: userOp.accountGasLimits,
-        preVerificationGas: toRpcHex(userOp.preVerificationGas),
-        gasFees: userOp.gasFees,
-        paymasterAndData: userOp.paymasterAndData,
-        signature: userOp.signature,
-    };
-
-    const unpackedPayload = {
+    const splitPayload = {
         sender: userOp.sender,
         nonce: toRpcHex(userOp.nonce),
         callData: userOp.callData,
@@ -272,24 +276,23 @@ export async function sendAAUserOperationToBundler(userOp: PackedUserOperation):
         signature: userOp.signature,
     };
 
-    let json = await callBundlerRpc('eth_sendUserOperation', [packedV07Payload, entryPoint]);
+    // First try split field shape (widely accepted by Alto/Alchemy bundlers).
+    let json = await callBundlerRpc('eth_sendUserOperation', [splitPayload, entryPoint]);
 
     if (!json.error && typeof json.result === 'string') {
         return { userOpHash: json.result };
     }
+    const splitMessage = json.error?.message ?? '';
 
-    const packedMessage = json.error?.message ?? '';
-
-    // Fallback: some tooling expects decomposed gas / factory / paymaster fields.
-    json = await callBundlerRpc('eth_sendUserOperation', [unpackedPayload, entryPoint]);
+    // Fallback: some bundlers still accept canonical v0.7 initCode/paymasterAndData shape.
+    json = await callBundlerRpc('eth_sendUserOperation', [v07RpcPayload, entryPoint]);
 
     if (!json.error && typeof json.result === 'string') {
         return { userOpHash: json.result };
     }
-
-    const unpackedMessage = json.error?.message ?? '';
+    const v07Message = json.error?.message ?? '';
     const finalErrorMessage =
-        unpackedMessage || packedMessage || 'Bundler eth_sendUserOperation failed (packed and unpacked attempts).';
+        v07Message || splitMessage || 'Bundler eth_sendUserOperation failed (split + v0.7 fallback attempts).';
 
     if (/preVerificationGas too low/i.test(finalErrorMessage)) {
         throw new Error(`${finalErrorMessage} Re-sign UserOperation after increasing preVerificationGas.`);

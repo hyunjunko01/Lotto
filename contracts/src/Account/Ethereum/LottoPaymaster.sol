@@ -32,8 +32,9 @@ contract LottoPaymaster is BasePaymaster {
     event AllowedEntryTokenSelectorUpdated(bytes4 indexed selector, bool allowed);
 
     constructor(IEntryPoint entryPoint, address owner, address lottoFactory, address entryToken)
-        BasePaymaster(entryPoint, owner)
+        BasePaymaster(entryPoint)
     {
+        transferOwnership(owner);
         i_lottoFactory = lottoFactory;
         i_entryToken = entryToken;
 

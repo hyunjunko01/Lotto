@@ -40,13 +40,6 @@
   },
   {
     "type": "function",
-    "name": "acceptOwnership",
-    "inputs": [],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
     "name": "addStake",
     "inputs": [
       {
@@ -177,19 +170,6 @@
   {
     "type": "function",
     "name": "owner",
-    "inputs": [],
-    "outputs": [
-      {
-        "name": "",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "pendingOwner",
     "inputs": [],
     "outputs": [
       {
@@ -480,25 +460,6 @@
   },
   {
     "type": "event",
-    "name": "OwnershipTransferStarted",
-    "inputs": [
-      {
-        "name": "previousOwner",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      },
-      {
-        "name": "newOwner",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
     "name": "OwnershipTransferred",
     "inputs": [
       {
@@ -515,22 +476,6 @@
       }
     ],
     "anonymous": false
-  },
-  {
-    "type": "error",
-    "name": "ERC165Error",
-    "inputs": [
-      {
-        "name": "entryPoint",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "interfaceId",
-        "type": "bytes4",
-        "internalType": "bytes4"
-      }
-    ]
   },
   {
     "type": "error",
@@ -558,32 +503,6 @@
     "type": "error",
     "name": "LottoPaymaster__UnsupportedAccountCall",
     "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "MustOverride",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "NotFromEntryPoint",
-    "inputs": [
-      {
-        "name": "msgSender",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "entity",
-        "type": "address",
-        "internalType": "address"
-      },
-      {
-        "name": "entryPoint",
-        "type": "address",
-        "internalType": "address"
-      }
-    ]
   },
   {
     "type": "error",
