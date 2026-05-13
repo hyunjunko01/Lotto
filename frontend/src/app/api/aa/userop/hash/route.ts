@@ -8,12 +8,12 @@ function normalizeUserOp(input: HashUserOpRequest['userOp']): PackedUserOperatio
     return {
         sender: input.sender,
         nonce: BigInt(input.nonce),
-        initCode: input.initCode,
-        callData: input.callData,
-        accountGasLimits: input.accountGasLimits,
+        initCode: input.initCode as `0x${string}`,
+        callData: input.callData as `0x${string}`,
+        accountGasLimits: input.accountGasLimits as `0x${string}`,
         preVerificationGas: BigInt(input.preVerificationGas),
-        gasFees: input.gasFees,
-        paymasterAndData: input.paymasterAndData,
+        gasFees: input.gasFees as `0x${string}`,
+        paymasterAndData: input.paymasterAndData as `0x${string}`,
         signature: '0x',
     };
 }

@@ -4,9 +4,9 @@ import { useEffect, useMemo } from 'react';
 import { useAccount, useBlockNumber, useReadContract, useReadContracts } from 'wagmi';
 import { Address } from 'viem';
 import lottoFactoryAbi from '@/contracts/LottoFactory.json';
+import { isTargetNetwork, targetChainId, targetNetworkLabel } from '@/lib/targetNetwork';
 
 const ANVIL_LOTTO_FACTORY_ADDRESS: Address = '0x7a2088a1bFc9d81c55368AE168C2C02570cB814F';
-const ANVIL_CHAIN_ID = 31337;
 const LOTTO_FACTORY_ADDRESS =
     (process.env.NEXT_PUBLIC_LOTTO_FACTORY_ADDRESS as Address | undefined) ?? ANVIL_LOTTO_FACTORY_ADDRESS;
 
@@ -76,6 +76,7 @@ export function useJoinLotteryInstances() {
         address: LOTTO_FACTORY_ADDRESS,
         abi: lottoFactoryAbi,
         functionName: 'getAllLottos',
+        chainId: targetChainId,
         query: {
             enabled: true,
             refetchInterval: 5000,
@@ -94,21 +95,25 @@ export function useJoinLotteryInstances() {
                     address: lottoAddress,
                     abi: lottoInstanceReadAbi,
                     functionName: 'getPlayerCount' as const,
+                    chainId: targetChainId,
                 },
                 {
                     address: lottoAddress,
                     abi: lottoInstanceReadAbi,
                     functionName: 'maxPlayers' as const,
+                    chainId: targetChainId,
                 },
                 {
                     address: lottoAddress,
                     abi: lottoInstanceReadAbi,
                     functionName: 'entryFee' as const,
+                    chainId: targetChainId,
                 },
                 {
                     address: lottoAddress,
                     abi: lottoInstanceReadAbi,
                     functionName: 'lottoState' as const,
+                    chainId: targetChainId,
                 },
             ]),
         [parsedLottoAddresses]
@@ -127,6 +132,7 @@ export function useJoinLotteryInstances() {
     });
 
     const { data: blockNumber } = useBlockNumber({
+        chainId: targetChainId,
         watch: true,
         query: {
             enabled: parsedLottoAddresses.length > 0,
@@ -165,10 +171,11 @@ export function useJoinLotteryInstances() {
         return resultMap;
     }, [lottoReadResults, parsedLottoAddresses]);
 
-    const isWrongNetwork = chainId !== undefined && chainId !== ANVIL_CHAIN_ID;
+    const isWrongNetwork = chainId !== undefined && !isTargetNetwork(chainId);
 
     return {
         isWrongNetwork,
+        targetNetworkLabel,
         parsedLottoAddresses,
         isLoadingLottoAddresses,
         isLottoAddressesError,

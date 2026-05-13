@@ -14,11 +14,11 @@ import {
     recoverAddress,
     toHex,
 } from 'viem';
-import { anvil } from 'viem/chains';
 import type { IProvider } from '@web3auth/base';
 import type { UserOpFields } from '@/components/aa/types';
 import accountFactoryAbi from '@/contracts/AccountFactory.json';
 import { connectWeb3Auth, getWeb3Auth } from '@/lib/web3auth';
+import { targetChain, targetRpcUrl } from '@/lib/targetNetwork';
 
 export type AALotteryMode = 'create' | 'join' | 'faucet';
 export type AAJoinAction =
@@ -37,6 +37,8 @@ export type AALottoSummary = {
     lottoState?: bigint;
     winner?: string;
     isPrizeWithdrawn?: boolean;
+    randomnessRequestedAt?: bigint;
+    calculatingTimeout?: bigint;
 };
 
 type AccountResponse = {
@@ -213,6 +215,20 @@ const LOTTO_INSTANCE_VIEW_ABI = [
         inputs: [],
         outputs: [{ name: '', type: 'bool' }],
     },
+    {
+        type: 'function',
+        name: 'randomnessRequestedAt',
+        stateMutability: 'view',
+        inputs: [],
+        outputs: [{ name: '', type: 'uint256' }],
+    },
+    {
+        type: 'function',
+        name: 'CALCULATING_TIMEOUT',
+        stateMutability: 'view',
+        inputs: [],
+        outputs: [{ name: '', type: 'uint256' }],
+    },
 ] as const;
 
 const ERC20_APPROVE_ABI = [
@@ -280,6 +296,12 @@ function findLottoSummary(instances: AALottoSummary[], joinTarget: string): AALo
     return instances.find((item) => item.address.toLowerCase() === joinTarget.toLowerCase());
 }
 
+function isRefundTimeoutElapsed(summary: AALottoSummary | undefined, nowSeconds = BigInt(Math.floor(Date.now() / 1000))) {
+    if (summary?.lottoState === undefined || Number(summary.lottoState) !== 2) return false;
+    if (summary.randomnessRequestedAt === undefined || summary.calculatingTimeout === undefined) return false;
+    return nowSeconds >= summary.randomnessRequestedAt + summary.calculatingTimeout;
+}
+
 function packAccountGasLimits(verificationGasLimit: bigint, callGasLimit: bigint): `0x${string}` {
     const packed = (verificationGasLimit << BigInt(128)) | callGasLimit;
     return `0x${packed.toString(16).padStart(64, '0')}`;
@@ -341,6 +363,12 @@ function joinActionAllowedByState(
                     st === undefined
                         ? 'Lottery state could not be read. Use Refresh Account State or reload instances, then try again.'
                         : 'triggerRefundMode is only available while lottery status is CALCULATING.',
+            };
+        }
+        if (!isRefundTimeoutElapsed(summary)) {
+            return {
+                ok: false,
+                message: 'triggerRefundMode is only available after the CALCULATING timeout has elapsed.',
             };
         }
         return { ok: true };
@@ -494,7 +522,7 @@ export function useAALottery({
 
         const checkDeployed = async () => {
             try {
-                const rpcUrl = process.env.NEXT_PUBLIC_RPC_URL || 'http://127.0.0.1:8545';
+                const rpcUrl = targetRpcUrl || 'http://127.0.0.1:8545';
                 const response = await fetch(rpcUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -644,7 +672,7 @@ export function useAALottery({
         setLottoInstancesError('');
 
         try {
-            const rpcUrl = process.env.NEXT_PUBLIC_RPC_URL || 'http://127.0.0.1:8545';
+            const rpcUrl = targetRpcUrl || 'http://127.0.0.1:8545';
             const callJsonRpc = async (to: string, data: `0x${string}`) => {
                 const response = await fetch(rpcUrl, {
                     method: 'POST',
@@ -684,6 +712,8 @@ export function useAALottery({
                         lottoStateRaw,
                         winnerRaw,
                         prizeWithdrawnRaw,
+                        randomnessRequestedAtRaw,
+                        calculatingTimeoutRaw,
                     ] = await Promise.all([
                         callJsonRpc(
                             address,
@@ -703,6 +733,14 @@ export function useAALottery({
                         callJsonRpc(
                             address,
                             encodeFunctionData({ abi: LOTTO_INSTANCE_VIEW_ABI, functionName: 'isPrizeWithdrawn' })
+                        ),
+                        callJsonRpc(
+                            address,
+                            encodeFunctionData({ abi: LOTTO_INSTANCE_VIEW_ABI, functionName: 'randomnessRequestedAt' })
+                        ),
+                        callJsonRpc(
+                            address,
+                            encodeFunctionData({ abi: LOTTO_INSTANCE_VIEW_ABI, functionName: 'CALCULATING_TIMEOUT' })
                         ),
                     ]);
 
@@ -745,6 +783,16 @@ export function useAALottery({
                             functionName: 'isPrizeWithdrawn',
                             data: prizeWithdrawnRaw,
                         }) as boolean,
+                        randomnessRequestedAt: decodeFunctionResult({
+                            abi: LOTTO_INSTANCE_VIEW_ABI,
+                            functionName: 'randomnessRequestedAt',
+                            data: randomnessRequestedAtRaw,
+                        }) as bigint,
+                        calculatingTimeout: decodeFunctionResult({
+                            abi: LOTTO_INSTANCE_VIEW_ABI,
+                            functionName: 'CALCULATING_TIMEOUT',
+                            data: calculatingTimeoutRaw,
+                        }) as bigint,
                     } as AALottoSummary;
                 })
             );
@@ -796,7 +844,7 @@ export function useAALottery({
         }
 
         try {
-            const rpcUrl = process.env.NEXT_PUBLIC_RPC_URL || 'http://127.0.0.1:8545';
+            const rpcUrl = targetRpcUrl || 'http://127.0.0.1:8545';
             const callData = encodeFunctionData({
                 abi: ERC20_BALANCE_OF_ABI,
                 functionName: 'balanceOf',
@@ -848,7 +896,7 @@ export function useAALottery({
         }
 
         try {
-            const rpcUrl = process.env.NEXT_PUBLIC_RPC_URL || 'http://127.0.0.1:8545';
+            const rpcUrl = targetRpcUrl || 'http://127.0.0.1:8545';
             const callData = encodeFunctionData({
                 abi: ERC20_ALLOWANCE_ABI,
                 functionName: 'allowance',
@@ -1028,7 +1076,7 @@ export function useAALottery({
             const userOpHash = hashJson.userOpHash as Hex;
 
             const walletClient = createWalletClient({
-                chain: anvil,
+                chain: targetChain,
                 transport: custom(web3Provider),
                 account: ownerAddress as `0x${string}`,
             });
@@ -1289,7 +1337,7 @@ export function useAALottery({
             setWeb3Provider(provider);
 
             const walletClient = createWalletClient({
-                chain: anvil,
+                chain: targetChain,
                 transport: custom(provider),
             });
             const addresses = await walletClient.getAddresses();

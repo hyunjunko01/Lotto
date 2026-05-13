@@ -4,8 +4,8 @@ import { useMemo } from 'react';
 import { useReadContract, useReadContracts } from 'wagmi';
 import { Address, isAddress } from 'viem';
 import lottoFactoryAbi from '@/contracts/LottoFactory.json';
+import { targetChainId } from '@/lib/targetNetwork';
 
-const ANVIL_CHAIN_ID = 31337;
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000' as Address;
 const LOTTO_FACTORY_ADDRESS = process.env.NEXT_PUBLIC_LOTTO_FACTORY_ADDRESS;
 
@@ -43,7 +43,7 @@ export function useAAJoinLotteryIndex() {
     address: configuredFactoryAddress ?? ZERO_ADDRESS,
     abi: lottoFactoryAbi,
     functionName: 'getAllLottos',
-    chainId: ANVIL_CHAIN_ID,
+    chainId: targetChainId,
     query: { enabled: Boolean(configuredFactoryAddress), refetchInterval: 5000 },
   });
 
@@ -52,10 +52,10 @@ export function useAAJoinLotteryIndex() {
   const lottoReadContracts = useMemo(
     () =>
       parsedLottoAddresses.flatMap((lottoAddress) => [
-        { address: lottoAddress, abi: lottoInstanceReadAbi, functionName: 'getPlayerCount' as const, chainId: ANVIL_CHAIN_ID },
-        { address: lottoAddress, abi: lottoInstanceReadAbi, functionName: 'maxPlayers' as const, chainId: ANVIL_CHAIN_ID },
-        { address: lottoAddress, abi: lottoInstanceReadAbi, functionName: 'entryFee' as const, chainId: ANVIL_CHAIN_ID },
-        { address: lottoAddress, abi: lottoInstanceReadAbi, functionName: 'lottoState' as const, chainId: ANVIL_CHAIN_ID },
+        { address: lottoAddress, abi: lottoInstanceReadAbi, functionName: 'getPlayerCount' as const, chainId: targetChainId },
+        { address: lottoAddress, abi: lottoInstanceReadAbi, functionName: 'maxPlayers' as const, chainId: targetChainId },
+        { address: lottoAddress, abi: lottoInstanceReadAbi, functionName: 'entryFee' as const, chainId: targetChainId },
+        { address: lottoAddress, abi: lottoInstanceReadAbi, functionName: 'lottoState' as const, chainId: targetChainId },
       ]),
     [parsedLottoAddresses]
   );

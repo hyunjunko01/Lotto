@@ -72,6 +72,7 @@ export function useAALottoDetailPage() {
     );
 
     const [expandedAction, setExpandedAction] = useState<AAJoinAction | null>(null);
+    const [currentTimestamp, setCurrentTimestamp] = useState(() => BigInt(Math.floor(Date.now() / 1000)));
 
     const aa = useAALottery({
         mode: 'join',
@@ -94,7 +95,15 @@ export function useAALottoDetailPage() {
     const statusNumber = selectedSummary?.lottoState !== undefined ? Number(selectedSummary.lottoState) : undefined;
     const canApproveOrJoin = statusNumber === AALottoDetailState.OPEN;
     const canRequestWinner = statusNumber === AALottoDetailState.FULL;
-    const canTriggerRefundMode = statusNumber === AALottoDetailState.CALCULATING;
+    const refundTimeoutAt =
+        selectedSummary?.randomnessRequestedAt !== undefined && selectedSummary.calculatingTimeout !== undefined
+            ? selectedSummary.randomnessRequestedAt + selectedSummary.calculatingTimeout
+            : undefined;
+    const isRefundTimeoutElapsed =
+        statusNumber === AALottoDetailState.CALCULATING &&
+        refundTimeoutAt !== undefined &&
+        currentTimestamp >= refundTimeoutAt;
+    const canTriggerRefundMode = isRefundTimeoutElapsed;
     const winnerAddr = selectedSummary?.winner;
     const hasWinner = Boolean(winnerAddr && winnerAddr.toLowerCase() !== ZERO_ADDRESS.toLowerCase());
     const isAaAccountWinner =
@@ -108,6 +117,13 @@ export function useAALottoDetailPage() {
         if (!lottoAddress || !selectedSummary) return;
         aa.handleSelectJoinTarget(lottoAddress, selectedSummary.entryFee, selectedSummary.entryToken);
     }, [aa.handleSelectJoinTarget, lottoAddress, selectedSummary]);
+
+    useEffect(() => {
+        const id = setInterval(() => {
+            setCurrentTimestamp(BigInt(Math.floor(Date.now() / 1000)));
+        }, 1000);
+        return () => clearInterval(id);
+    }, []);
 
     return {
         rawAddress,
@@ -127,6 +143,8 @@ export function useAALottoDetailPage() {
         canRequestWinner,
         canWithdrawPrize,
         canTriggerRefundMode,
+        refundTimeoutAt,
+        isRefundTimeoutElapsed,
         canClaimRefund,
         isAaAccountWinner,
         hasWinner,

@@ -1,8 +1,9 @@
 // src/lib/wagmi.ts
 import '@rainbow-me/rainbowkit/styles.css';
 import { getDefaultConfig } from '@rainbow-me/rainbowkit';
-import { anvil, mainnet, sepolia } from 'wagmi/chains';
+import { anvil, baseSepolia, mainnet, sepolia } from 'wagmi/chains';
 import { http } from 'wagmi';
+import { orderedWalletChains, targetChainId, targetRpcUrl } from '@/lib/targetNetwork';
 
 let cachedConfig: ReturnType<typeof getDefaultConfig> | null = null;
 
@@ -15,12 +16,13 @@ export function getRainbowKitConfig() {
         projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_ID!,
 
         // 
-        chains: [anvil, sepolia, mainnet],
+        chains: [...orderedWalletChains(), mainnet],
 
         //
         transports: {
-            [anvil.id]: http('http://127.0.0.1:8545'),
-            [sepolia.id]: http(),
+            [anvil.id]: http(targetChainId === anvil.id ? targetRpcUrl : 'http://127.0.0.1:8545'),
+            [sepolia.id]: targetChainId === sepolia.id && targetRpcUrl ? http(targetRpcUrl) : http(),
+            [baseSepolia.id]: targetChainId === baseSepolia.id && targetRpcUrl ? http(targetRpcUrl) : http(),
             [mainnet.id]: http(),
         },
 

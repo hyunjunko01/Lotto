@@ -13,6 +13,7 @@ export default function JoinLotteryPage() {
 
     const {
         isWrongNetwork,
+        targetNetworkLabel,
         parsedLottoAddresses,
         isLoadingLottoAddresses,
         isLottoAddressesError,
@@ -29,7 +30,7 @@ export default function JoinLotteryPage() {
                         Select one of the available lottery instances to view its info and callable functions.
                     </p>
                     {isWrongNetwork ? (
-                        <p style={{ marginTop: 10, color: t.warnText }}>Current network is not Anvil (31337).</p>
+                        <p style={{ marginTop: 10, color: t.warnText }}>Current network is not {targetNetworkLabel}.</p>
                     ) : null}
                 </MetamaskSection>
 

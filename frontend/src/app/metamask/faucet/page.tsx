@@ -15,7 +15,8 @@ export default function MetamaskFaucetPage() {
         entryTokenAddress,
         walletAddress,
         isWrongNetwork,
-        switchToAnvil,
+        switchToTargetNetwork,
+        targetNetworkLabel,
         claim,
         claimHash,
         isClaimPending,
@@ -50,9 +51,9 @@ export default function MetamaskFaucetPage() {
 
                 {isWrongNetwork ? (
                     <section style={ui.networkBannerSection}>
-                        <p style={{ color: t.warnText }}>Wrong network detected. Please switch to Anvil (31337).</p>
-                        <button type="button" onClick={switchToAnvil} style={{ ...ui.primaryButtonSm, marginTop: 12 }}>
-                            Switch to Anvil
+                        <p style={{ color: t.warnText }}>Wrong network detected. Please switch to {targetNetworkLabel}.</p>
+                        <button type="button" onClick={switchToTargetNetwork} style={{ ...ui.primaryButtonSm, marginTop: 12 }}>
+                            Switch to {targetNetworkLabel}
                         </button>
                     </section>
                 ) : null}

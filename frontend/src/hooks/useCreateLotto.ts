@@ -9,9 +9,9 @@ import {
     useWriteContract,
 } from 'wagmi';
 import { Address, BaseError, isAddress, parseEther } from 'viem';
+import { isTargetNetwork, targetChainId, targetNetworkLabel, targetNetworkName } from '@/lib/targetNetwork';
 
 const ANVIL_LOTTO_FACTORY_ADDRESS: Address = '0x7a2088a1bFc9d81c55368AE168C2C02570cB814F';
-const ANVIL_CHAIN_ID = 31337;
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000' as Address;
 const LOTTO_FACTORY_ADDRESS =
     (process.env.NEXT_PUBLIC_LOTTO_FACTORY_ADDRESS as Address | undefined) ?? ANVIL_LOTTO_FACTORY_ADDRESS;
@@ -56,7 +56,7 @@ export function useCreateLotto() {
     const { switchChain } = useSwitchChain();
 
     const hasValidEntryToken = typeof ENTRY_TOKEN_ADDRESS === 'string' && isAddress(ENTRY_TOKEN_ADDRESS);
-    const isWrongNetwork = isConnected && chainId !== ANVIL_CHAIN_ID;
+    const isWrongNetwork = isConnected && !isTargetNetwork(chainId);
 
     const [entryFeeEth, setEntryFeeEth] = useState('0.01');
     const [maxPlayers, setMaxPlayers] = useState('5');
@@ -71,12 +71,14 @@ export function useCreateLotto() {
 
     const { isLoading: isCreateLottoConfirming, isSuccess: isCreateLottoConfirmed } = useWaitForTransactionReceipt({
         hash: createLottoHash,
+        chainId: targetChainId,
     });
 
     const { data: currentLetBalance } = useReadContract({
         address: hasValidEntryToken ? (ENTRY_TOKEN_ADDRESS as Address) : ZERO_ADDRESS,
         abi: erc20ViewAbi,
         functionName: 'balanceOf',
+        chainId: targetChainId,
         args: connectedAddress ? [connectedAddress] : undefined,
         query: {
             enabled: Boolean(hasValidEntryToken && connectedAddress),
@@ -86,16 +88,16 @@ export function useCreateLotto() {
 
     const canCreate = isConnected && hasValidEntryToken && !isCreateLottoPending && !isCreateLottoConfirming;
 
-    const switchToAnvil = useCallback(() => {
-        switchChain({ chainId: ANVIL_CHAIN_ID });
+    const switchToTargetNetwork = useCallback(() => {
+        switchChain({ chainId: targetChainId });
     }, [switchChain]);
 
     const createLotto = useCallback(async () => {
         try {
             setActionError('');
 
-            if (chainId !== ANVIL_CHAIN_ID) {
-                setActionError('Please switch your wallet network to Anvil (chainId 31337).');
+            if (!isTargetNetwork(chainId)) {
+                setActionError(`Please switch your wallet network to ${targetNetworkLabel}.`);
                 return;
             }
 
@@ -128,13 +130,15 @@ export function useCreateLotto() {
     }, [chainId, entryFeeEth, hasValidEntryToken, maxPlayers, writeContractAsync]);
 
     return {
-        anvilChainId: ANVIL_CHAIN_ID,
+        targetChainId,
+        targetNetworkName,
+        targetNetworkLabel,
         lottoFactoryAddress: LOTTO_FACTORY_ADDRESS,
         entryTokenAddress: ENTRY_TOKEN_ADDRESS ?? null,
         hasValidEntryToken,
         isConnected,
         isWrongNetwork,
-        switchToAnvil,
+        switchToTargetNetwork,
         entryFeeEth,
         setEntryFeeEth,
         maxPlayers,

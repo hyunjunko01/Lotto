@@ -256,7 +256,9 @@ export default function AALottoJoinDetailPage() {
                                         <p style={{ marginTop: 10, marginBottom: 0, ...ui.warningText }}>
                                             {d.statusNumber === undefined
                                                 ? 'Waiting for instance status from the chain. Use Refresh Account State or reload.'
-                                                : 'Enabled only when lottery status is CALCULATING. Note: the contract will revert until the timeout is reached.'}
+                                                : d.statusNumber === AALottoDetailState.CALCULATING
+                                                  ? 'Enabled only after the CALCULATING timeout has elapsed.'
+                                                  : 'Enabled only when lottery status is CALCULATING.'}
                                         </p>
                                     ) : null}
                                     {card.action === 'withdrawPrize' && !d.canWithdrawPrize ? (

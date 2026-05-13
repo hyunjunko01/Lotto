@@ -10,9 +10,9 @@ import {
     useWriteContract,
 } from 'wagmi';
 import { Address, BaseError, isAddress } from 'viem';
+import { isTargetNetwork, targetChainId, targetNetworkLabel } from '@/lib/targetNetwork';
 
 const ENTRY_TOKEN_ENV = process.env.NEXT_PUBLIC_ENTRY_TOKEN_ADDRESS;
-const ANVIL_CHAIN_ID = 31337;
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000' as Address;
 
 const entryTokenAbi = [
@@ -56,13 +56,17 @@ export function useEntryTokenFaucet() {
         reset,
     } = useWriteContract();
 
-    const { isLoading: isClaimConfirming, isSuccess: isClaimConfirmed } = useWaitForTransactionReceipt({ hash: claimHash });
+    const { isLoading: isClaimConfirming, isSuccess: isClaimConfirmed } = useWaitForTransactionReceipt({
+        hash: claimHash,
+        chainId: targetChainId,
+    });
 
-    const { data: blockNumber } = useBlockNumber({ watch: true });
+    const { data: blockNumber } = useBlockNumber({ chainId: targetChainId, watch: true });
     const { data: balanceData, refetch: refetchBalance } = useReadContract({
         address: entryTokenAddress ?? ZERO_ADDRESS,
         abi: entryTokenAbi,
         functionName: 'balanceOf',
+        chainId: targetChainId,
         args: address ? [address] : undefined,
         query: {
             enabled: Boolean(entryTokenAddress && address),
@@ -76,10 +80,10 @@ export function useEntryTokenFaucet() {
     }, [blockNumber, refetchBalance]);
 
     const canClaim = isConnected && !isClaimPending && !isClaimConfirming && Boolean(entryTokenAddress);
-    const isWrongNetwork = isConnected && chainId !== ANVIL_CHAIN_ID;
+    const isWrongNetwork = isConnected && !isTargetNetwork(chainId);
 
-    const switchToAnvil = useCallback(() => {
-        switchChain({ chainId: ANVIL_CHAIN_ID });
+    const switchToTargetNetwork = useCallback(() => {
+        switchChain({ chainId: targetChainId });
     }, [switchChain]);
 
     const claim = useCallback(async () => {
@@ -89,8 +93,8 @@ export function useEntryTokenFaucet() {
                 setActionError('`NEXT_PUBLIC_ENTRY_TOKEN_ADDRESS` is missing or invalid.');
                 return;
             }
-            if (chainId !== ANVIL_CHAIN_ID) {
-                setActionError('Please switch your wallet network to Anvil (chainId 31337).');
+            if (!isTargetNetwork(chainId)) {
+                setActionError(`Please switch your wallet network to ${targetNetworkLabel}.`);
                 return;
             }
 
@@ -109,7 +113,8 @@ export function useEntryTokenFaucet() {
         entryTokenAddress: ENTRY_TOKEN_ENV ?? null,
         walletAddress: address ?? null,
         isWrongNetwork,
-        switchToAnvil,
+        switchToTargetNetwork,
+        targetNetworkLabel,
         claim,
         claimHash,
         isClaimPending,

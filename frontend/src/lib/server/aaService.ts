@@ -6,8 +6,8 @@ import {
     isAddress,
     parseAbi,
 } from 'viem';
-import { anvil } from 'viem/chains';
 import accountFactoryAbi from '@/contracts/AccountFactory.json';
+import { targetChain } from '@/lib/targetNetwork';
 
 type PackedUserOperation = {
     sender: `0x${string}`;
@@ -204,7 +204,7 @@ function getEntryPointAddress(): `0x${string}` {
 
 function getPublicClient() {
     return createPublicClient({
-        chain: anvil,
+        chain: targetChain,
         transport: http(getRpcUrl()),
     });
 }

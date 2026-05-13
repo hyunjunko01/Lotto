@@ -11,11 +11,12 @@ export default function CreateLotteryPage() {
     const t = getMetamaskTokens('teal');
 
     const {
-        anvilChainId,
+        targetChainId,
+        targetNetworkLabel,
         lottoFactoryAddress,
         entryTokenAddress,
         isWrongNetwork,
-        switchToAnvil,
+        switchToTargetNetwork,
         entryFeeEth,
         setEntryFeeEth,
         maxPlayers,
@@ -45,9 +46,9 @@ export default function CreateLotteryPage() {
 
                     {isWrongNetwork ? (
                         <div style={{ marginTop: 14 }}>
-                            <p style={{ color: t.warnText }}>Wrong network detected. Please switch to Anvil (31337).</p>
-                            <button type="button" onClick={switchToAnvil} style={ui.primaryButtonSm}>
-                                Switch to Anvil
+                            <p style={{ color: t.warnText }}>Wrong network detected. Please switch to {targetNetworkLabel}.</p>
+                            <button type="button" onClick={switchToTargetNetwork} style={ui.primaryButtonSm}>
+                                Switch to {targetNetworkLabel}
                             </button>
                         </div>
                     ) : null}
@@ -99,7 +100,7 @@ export default function CreateLotteryPage() {
                 </MetamaskSection>
 
                 <p style={{ ...ui.monoNote, marginTop: 20 }}>
-                    Factory address in use: {lottoFactoryAddress} (chainId {anvilChainId})
+                    Factory address in use: {lottoFactoryAddress} (chainId {targetChainId})
                 </p>
                 <p style={{ ...ui.monoNote, marginTop: 6 }}>
                     Entry token in use: {entryTokenAddress ?? '(missing NEXT_PUBLIC_ENTRY_TOKEN_ADDRESS)'}

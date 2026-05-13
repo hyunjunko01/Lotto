@@ -14,6 +14,7 @@ import {
 } from 'wagmi';
 import { Address, BaseError, formatEther, isAddress, parseEventLogs } from 'viem';
 import lottoFactoryAbi from '@/contracts/LottoFactory.json';
+import { isTargetNetwork, targetChainId, targetLogLookbackBlocks, targetNetworkLabel } from '@/lib/targetNetwork';
 
 enum LottoState {
     OPEN = 0,
@@ -22,8 +23,6 @@ enum LottoState {
     CLOSED = 3,
     REFUNDING = 4,
 }
-
-const ANVIL_CHAIN_ID = 31337;
 
 const lottoInstanceAbi = [
     {
@@ -220,17 +219,19 @@ export default function LottoInstancePage() {
     );
 
     const { address: connectedAddress, isConnected, chainId } = useAccount();
-    const publicClient = usePublicClient();
+    const publicClient = usePublicClient({ chainId: targetChainId });
     const { switchChain } = useSwitchChain();
-    const isWrongNetwork = isConnected && chainId !== ANVIL_CHAIN_ID;
+    const isWrongNetwork = isConnected && !isTargetNetwork(chainId);
 
     const [actionError, setActionError] = useState('');
     const [requestId, setRequestId] = useState<string>('');
+    const [currentTimestamp, setCurrentTimestamp] = useState(() => BigInt(Math.floor(Date.now() / 1000)));
 
     const { data: lottoBalance, refetch: refetchBalance } = useReadContract({
         address: lottoAddress,
         abi: lottoInstanceAbi,
         functionName: 'getLottoBalance',
+        chainId: targetChainId,
         query: {
             enabled: Boolean(lottoAddress),
             refetchInterval: 3000,
@@ -241,6 +242,7 @@ export default function LottoInstancePage() {
         address: lottoAddress,
         abi: lottoInstanceAbi,
         functionName: 'entryFee',
+        chainId: targetChainId,
         query: { enabled: Boolean(lottoAddress) },
     });
 
@@ -248,6 +250,7 @@ export default function LottoInstancePage() {
         address: lottoAddress,
         abi: lottoInstanceAbi,
         functionName: 'maxPlayers',
+        chainId: targetChainId,
         query: { enabled: Boolean(lottoAddress) },
     });
 
@@ -255,6 +258,7 @@ export default function LottoInstancePage() {
         address: lottoAddress,
         abi: lottoInstanceAbi,
         functionName: 'getPlayerCount',
+        chainId: targetChainId,
         query: {
             enabled: Boolean(lottoAddress),
             refetchInterval: 3000,
@@ -265,6 +269,7 @@ export default function LottoInstancePage() {
         address: lottoAddress,
         abi: lottoInstanceAbi,
         functionName: 'getRemainingSpots',
+        chainId: targetChainId,
         query: {
             enabled: Boolean(lottoAddress),
             refetchInterval: 3000,
@@ -275,6 +280,7 @@ export default function LottoInstancePage() {
         address: lottoAddress,
         abi: lottoInstanceAbi,
         functionName: 'winner',
+        chainId: targetChainId,
         query: { enabled: Boolean(lottoAddress) },
     });
 
@@ -282,12 +288,14 @@ export default function LottoInstancePage() {
         address: lottoAddress,
         abi: lottoInstanceAbi,
         functionName: 'factory',
+        chainId: targetChainId,
         query: { enabled: Boolean(lottoAddress) },
     });
     const { data: entryTokenAddress } = useReadContract({
         address: lottoAddress,
         abi: lottoInstanceAbi,
         functionName: 'entryToken',
+        chainId: targetChainId,
         query: { enabled: Boolean(lottoAddress) },
     });
 
@@ -295,6 +303,7 @@ export default function LottoInstancePage() {
         address: lottoAddress,
         abi: lottoInstanceAbi,
         functionName: 'lottoState',
+        chainId: targetChainId,
         query: {
             enabled: Boolean(lottoAddress),
             refetchInterval: 3000,
@@ -305,6 +314,7 @@ export default function LottoInstancePage() {
         address: lottoAddress,
         abi: lottoInstanceAbi,
         functionName: 'isRandomnessRequested',
+        chainId: targetChainId,
         query: { enabled: Boolean(lottoAddress) },
     });
 
@@ -312,6 +322,7 @@ export default function LottoInstancePage() {
         address: lottoAddress,
         abi: lottoInstanceAbi,
         functionName: 'isPrizeWithdrawn',
+        chainId: targetChainId,
         query: { enabled: Boolean(lottoAddress) },
     });
 
@@ -319,6 +330,7 @@ export default function LottoInstancePage() {
         address: lottoAddress,
         abi: lottoInstanceAbi,
         functionName: 'refundableAmount',
+        chainId: targetChainId,
         args: connectedAddress ? [connectedAddress] : undefined,
         query: {
             enabled: Boolean(lottoAddress && connectedAddress),
@@ -330,6 +342,7 @@ export default function LottoInstancePage() {
         address: lottoAddress,
         abi: lottoInstanceAbi,
         functionName: 'randomnessRequestedAt',
+        chainId: targetChainId,
         query: {
             enabled: Boolean(lottoAddress),
             refetchInterval: 3000,
@@ -340,6 +353,7 @@ export default function LottoInstancePage() {
         address: lottoAddress,
         abi: lottoInstanceAbi,
         functionName: 'CALCULATING_TIMEOUT',
+        chainId: targetChainId,
         query: { enabled: Boolean(lottoAddress) },
     });
 
@@ -360,12 +374,14 @@ export default function LottoInstancePage() {
                         address: entryTokenAddress,
                         abi: erc20Abi,
                         functionName: 'allowance',
+                        chainId: targetChainId,
                         args: [connectedAddress, lottoAddress],
                     },
                     {
                         address: entryTokenAddress,
                         abi: erc20Abi,
                         functionName: 'balanceOf',
+                        chainId: targetChainId,
                         args: [connectedAddress],
                     },
                 ]
@@ -378,6 +394,7 @@ export default function LottoInstancePage() {
 
     const { isLoading: isActionConfirming, isSuccess: isActionConfirmed } = useWaitForTransactionReceipt({
         hash: actionTxHash,
+        chainId: targetChainId,
     });
 
     const canExecute = isConnected && !isActionPending && !isActionConfirming;
@@ -392,7 +409,13 @@ export default function LottoInstancePage() {
         winner !== undefined &&
         connectedAddress!.toLowerCase() === winner.toLowerCase();
     const canWithdraw = statusNumber === LottoState.CLOSED && !isPrizeWithdrawn && isConnectedWinner;
-    const canTriggerRefundMode = statusNumber === LottoState.CALCULATING;
+    const refundTimeoutAt =
+        typeof randomnessRequestedAt === 'bigint' && typeof calculatingTimeout === 'bigint'
+            ? randomnessRequestedAt + calculatingTimeout
+            : undefined;
+    const isRefundTimeoutElapsed =
+        statusNumber === LottoState.CALCULATING && refundTimeoutAt !== undefined && currentTimestamp >= refundTimeoutAt;
+    const canTriggerRefundMode = isRefundTimeoutElapsed;
     const canClaimRefund =
         statusNumber === LottoState.REFUNDING &&
         typeof refundableAmount === 'bigint' &&
@@ -427,12 +450,19 @@ export default function LottoInstancePage() {
             setActionError('Invalid lotto instance address in URL.');
             return false;
         }
-        if (chainId !== ANVIL_CHAIN_ID) {
-            setActionError('Please switch your wallet network to Anvil (chainId 31337).');
+        if (!isTargetNetwork(chainId)) {
+            setActionError(`Please switch your wallet network to ${targetNetworkLabel}.`);
             return false;
         }
         return true;
     };
+
+    useEffect(() => {
+        const id = setInterval(() => {
+            setCurrentTimestamp(BigInt(Math.floor(Date.now() / 1000)));
+        }, 1000);
+        return () => clearInterval(id);
+    }, []);
 
     const handleJoinLotto = async () => {
         try {
@@ -546,42 +576,50 @@ export default function LottoInstancePage() {
         const loadLatestRequestId = async () => {
             if (!publicClient || !lottoAddress || !factory) return;
 
-            const logs = await publicClient.getLogs({
-                address: factory,
-                event: {
-                    type: 'event',
-                    name: 'RandomnessRequested',
-                    inputs: [
-                        { name: 'requestId', type: 'uint256', indexed: true },
-                        { name: 'lottoAddress', type: 'address', indexed: true },
-                    ],
-                    anonymous: false,
-                },
-                fromBlock: BigInt(0),
-                toBlock: 'latest',
-                args: {
-                    lottoAddress,
-                },
-            });
+            try {
+                const latestBlock = await publicClient.getBlockNumber();
+                const fromBlock =
+                    latestBlock >= targetLogLookbackBlocks ? latestBlock - targetLogLookbackBlocks + BigInt(1) : BigInt(0);
 
-            const parsedLogs = parseEventLogs({
-                abi: lottoFactoryAbi,
-                logs,
-                eventName: 'RandomnessRequested',
-            });
+                const logs = await publicClient.getLogs({
+                    address: factory,
+                    event: {
+                        type: 'event',
+                        name: 'RandomnessRequested',
+                        inputs: [
+                            { name: 'requestId', type: 'uint256', indexed: true },
+                            { name: 'lottoAddress', type: 'address', indexed: true },
+                        ],
+                        anonymous: false,
+                    },
+                    fromBlock,
+                    toBlock: latestBlock,
+                    args: {
+                        lottoAddress,
+                    },
+                });
 
-            const latestLog = parsedLogs[parsedLogs.length - 1] as
-                | {
-                    args?: {
-                        requestId?: bigint | number;
-                    };
+                const parsedLogs = parseEventLogs({
+                    abi: lottoFactoryAbi,
+                    logs,
+                    eventName: 'RandomnessRequested',
+                });
+
+                const latestLog = parsedLogs[parsedLogs.length - 1] as
+                    | {
+                        args?: {
+                            requestId?: bigint | number;
+                        };
+                    }
+                    | undefined;
+                const value = latestLog?.args?.requestId;
+                if (typeof value === 'bigint') {
+                    setRequestId(value.toString());
+                } else if (typeof value === 'number') {
+                    setRequestId(String(value));
                 }
-                | undefined;
-            const value = latestLog?.args?.requestId;
-            if (typeof value === 'bigint') {
-                setRequestId(value.toString());
-            } else if (typeof value === 'number') {
-                setRequestId(String(value));
+            } catch (error) {
+                console.warn('Failed to load latest RandomnessRequested log:', error);
             }
         };
 
@@ -617,7 +655,7 @@ export default function LottoInstancePage() {
             setActionError('');
             if (!ensureReady() || !lottoAddress) return;
             if (!canTriggerRefundMode) {
-                setActionError('triggerRefundMode is only available while state is CALCULATING.');
+                setActionError('triggerRefundMode is only available after the CALCULATING timeout has elapsed.');
                 return;
             }
 
@@ -688,9 +726,9 @@ export default function LottoInstancePage() {
 
                     {isWrongNetwork ? (
                         <div style={{ marginTop: 14 }}>
-                            <p style={{ color: '#ffc2b6' }}>Wrong network detected. Switch to Anvil (31337).</p>
+                            <p style={{ color: '#ffc2b6' }}>Wrong network detected. Switch to {targetNetworkLabel}.</p>
                             <button
-                                onClick={() => switchChain({ chainId: ANVIL_CHAIN_ID })}
+                                onClick={() => switchChain({ chainId: targetChainId })}
                                 style={{
                                     padding: '10px 14px',
                                     borderRadius: 10,
@@ -700,7 +738,7 @@ export default function LottoInstancePage() {
                                     cursor: 'pointer',
                                 }}
                             >
-                                Switch to Anvil
+                                Switch to {targetNetworkLabel}
                             </button>
                         </div>
                     ) : null}
@@ -760,6 +798,9 @@ export default function LottoInstancePage() {
                         <p style={{ margin: 0 }}>
                             CALCULATING_TIMEOUT:{' '}
                             {typeof calculatingTimeout === 'bigint' ? calculatingTimeout.toString() : '-'} seconds
+                        </p>
+                        <p style={{ margin: 0 }}>
+                            Refund timeout at: {refundTimeoutAt !== undefined ? refundTimeoutAt.toString() : '-'}
                         </p>
                         <p style={{ margin: 0 }}>Prize Withdrawn: {isPrizeWithdrawn ? 'Yes' : 'No'}</p>
                     </div>
@@ -898,7 +939,9 @@ export default function LottoInstancePage() {
                         </button>
                         {!canTriggerRefundMode ? (
                             <p style={{ marginTop: 10, color: '#c6dfe2' }}>
-                                Enabled only when status is CALCULATING. (The contract will revert until the timeout is reached.)
+                                {statusNumber === LottoState.CALCULATING
+                                    ? 'Enabled only after the CALCULATING timeout has elapsed.'
+                                    : 'Enabled only when status is CALCULATING.'}
                             </p>
                         ) : null}
                     </div>

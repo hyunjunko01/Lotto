@@ -15,9 +15,15 @@ function isBytes32Hex(value: string): boolean {
 
 function normalizeUserOp(input: NonNullable<SendUserOpRequest['userOp']>): PackedUserOperation {
     return {
-        ...input,
+        sender: input.sender,
         nonce: BigInt(input.nonce),
+        initCode: input.initCode as `0x${string}`,
+        callData: input.callData as `0x${string}`,
+        accountGasLimits: input.accountGasLimits as `0x${string}`,
         preVerificationGas: BigInt(input.preVerificationGas),
+        gasFees: input.gasFees as `0x${string}`,
+        paymasterAndData: input.paymasterAndData as `0x${string}`,
+        signature: input.signature as `0x${string}`,
     };
 }
 

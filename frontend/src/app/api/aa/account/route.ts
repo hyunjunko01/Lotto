@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
     } catch (error) {
         const rawMessage = error instanceof Error ? error.message : 'Failed to get AA account.';
         const message = /fetch failed|HTTP request failed/i.test(rawMessage)
-            ? 'Failed to reach RPC (AA_RPC_URL). Make sure Anvil is running at http://127.0.0.1:8545 and restart the flow.'
+            ? 'Failed to reach RPC (AA_RPC_URL). Check the configured target network RPC and restart the flow.'
             : rawMessage;
         return NextResponse.json({ error: message }, { status: 500 });
     }
