@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-cd "$(dirname "$0")/../../contracts"
+cd "$(dirname "$0")/../../../contracts"
 
 if [[ ! -f .env ]]; then
   echo "Error: contracts/.env not found"
@@ -17,6 +17,8 @@ FRONTEND_ENV_FILE="../frontend/.env.local"
 PAYMASTER_INITIAL_DEPOSIT_ETH="${BASE_SEPOLIA_PAYMASTER_INITIAL_DEPOSIT_ETH:-0.005}"
 UPDATE_FRONTEND_ENV="${UPDATE_FRONTEND_ENV_FOR_BASE_SEPOLIA:-false}"
 BASE_SEPOLIA_AA_BUNDLER_URL="${BASE_SEPOLIA_BUNDLER_URL:-${BASE_SEPOLIA_RPC_URL:-}}"
+# Longer wait for tx receipts reduces false retries (EOA nonce changed / nonce too low) on public RPC.
+FORGE_SCRIPT_TIMEOUT="${FORGE_SCRIPT_TIMEOUT:-300}"
 
 require_cmd() {
   local cmd="$1"
@@ -108,11 +110,16 @@ require_deployed_code() {
 
 deploy_script() {
   local script_path="$1"
-  echo "Running $script_path..."
+  local nonce
+  nonce=$(cast nonce "$DEPLOYER" --rpc-url "$BASE_SEPOLIA_RPC_URL")
+  echo "Running $script_path... (deployer latest nonce: $nonce)"
   forge script "$script_path" \
     --rpc-url "$BASE_SEPOLIA_RPC_URL" \
     --private-key "$BASE_SEPOLIA_PRIVATE_KEY" \
-    --broadcast
+    --broadcast \
+    --slow \
+    --non-interactive \
+    --timeout "$FORGE_SCRIPT_TIMEOUT"
 }
 
 require_cmd forge

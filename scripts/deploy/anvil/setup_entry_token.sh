@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-cd "$(dirname "$0")/../../contracts"
+cd "$(dirname "$0")/../../../contracts"
 
 if [[ ! -f .env ]]; then
   echo "Error: contracts/.env not found"
@@ -86,31 +86,23 @@ extract_create_address() {
 require_cmd forge
 require_cmd jq
 
-echo "Running DeployLotto..."
-forge script script/deploy/DeployLotto.s.sol --rpc-url "$ANVIL_RPC_URL" --private-key "$ANVIL_PRIVATE_KEY" --broadcast
+echo "Running DeployEntryToken..."
+forge script script/deploy/DeployEntryToken.s.sol --rpc-url "$ANVIL_RPC_URL" --private-key "$ANVIL_PRIVATE_KEY" --broadcast
 
-echo "Extracting lotto factory address from broadcast..."
-BROADCAST_JSON="broadcast/DeployLotto.s.sol/${CHAIN_ID}/run-latest.json"
+echo "Extracting entry token address from broadcast..."
+BROADCAST_JSON="broadcast/DeployEntryToken.s.sol/${CHAIN_ID}/run-latest.json"
 require_file "$BROADCAST_JSON"
-ANVIL_LOTTO_FACTORY=$(extract_create_address "$BROADCAST_JSON" "LottoFactory")
+ANVIL_ENTRY_TOKEN=$(extract_create_address "$BROADCAST_JSON" "LottoEntryToken")
 
-if [[ -z "$ANVIL_LOTTO_FACTORY" ]] || [[ "$ANVIL_LOTTO_FACTORY" == "null" ]]; then
-  echo "Error: Could not extract lotto factory address"
+if [[ -z "$ANVIL_ENTRY_TOKEN" ]] || [[ "$ANVIL_ENTRY_TOKEN" == "null" ]]; then
+  echo "Error: Could not extract entry token address"
   exit 1
 fi
 
-update_env_file .env ANVIL_LOTTO_FACTORY "$ANVIL_LOTTO_FACTORY"
-update_env_file "$FRONTEND_ENV_FILE" NEXT_PUBLIC_LOTTO_FACTORY_ADDRESS "$ANVIL_LOTTO_FACTORY"
-
-set -a
-source .env
-set +a
-
-echo "Registering LottoFactory as VRF consumer..."
-forge script script/setup/ConfigureVrfConsumer.s.sol --rpc-url "$ANVIL_RPC_URL" --private-key "$ANVIL_PRIVATE_KEY" --broadcast
+update_env_file .env ANVIL_ENTRY_TOKEN "$ANVIL_ENTRY_TOKEN"
+update_env_file "$FRONTEND_ENV_FILE" NEXT_PUBLIC_ENTRY_TOKEN_ADDRESS "$ANVIL_ENTRY_TOKEN"
 
 echo "✓ Updated .env:"
-echo "  ANVIL_LOTTO_FACTORY=$ANVIL_LOTTO_FACTORY"
+echo "  ANVIL_ENTRY_TOKEN=$ANVIL_ENTRY_TOKEN"
 echo "✓ Updated frontend/.env.local:"
-echo "  NEXT_PUBLIC_LOTTO_FACTORY_ADDRESS=$ANVIL_LOTTO_FACTORY"
-echo "✓ Registered LottoFactory as VRF consumer"
+echo "  NEXT_PUBLIC_ENTRY_TOKEN_ADDRESS=$ANVIL_ENTRY_TOKEN"

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-cd "$(dirname "$0")/../../contracts"
+cd "$(dirname "$0")/../../../contracts"
 
 if [[ ! -f .env ]]; then
   echo "Error: contracts/.env not found"
@@ -32,8 +32,8 @@ require_env() {
 }
 
 if [[ -z "$LOTTO_ADDRESS" ]]; then
-  echo "Usage: ./scripts/anvil/fulfill_randomness.sh <LOTTO_INSTANCE_ADDRESS>"
-  echo "Example: ./scripts/anvil/fulfill_randomness.sh 0x1234...abcd"
+  echo "Usage: ./scripts/deploy/anvil/fulfill_randomness.sh <LOTTO_INSTANCE_ADDRESS>"
+  echo "Example: ./scripts/deploy/anvil/fulfill_randomness.sh 0x1234...abcd"
   exit 1
 fi
 
