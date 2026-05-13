@@ -31,7 +31,7 @@ export async function getWeb3Auth(): Promise<Web3Auth> {
             privateKeyProvider:
                 privateKeyProvider as unknown as NonNullable<ConstructorParameters<typeof Web3Auth>[0]['privateKeyProvider']>,
         });
-        await web3AuthInstance.init();
+        await web3AuthInstance.initModal();
     }
 
     return web3AuthInstance;
