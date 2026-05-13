@@ -1,4 +1,4 @@
-.PHONY: setup-vrf setup-entrypoint setup-lotto setup-entry-token setup-paymaster sync-abis deploy deploy-sepolia fulfill-randomness bundler-start clean help
+.PHONY: setup-vrf setup-entrypoint setup-lotto setup-entry-token setup-paymaster sync-abis deploy deploy-sepolia deploy-base-sepolia fulfill-randomness bundler-start clean help
 
 help:
 	@echo "Available targets:"
@@ -12,6 +12,7 @@ help:
 	@echo "  make fulfill-randomness 0x...       - Same as above (positional address)"
 	@echo "  make deploy       - Run Anvil setup-vrf, setup-entrypoint, setup-lotto"
 	@echo "  make deploy-sepolia - Deploy Sepolia contracts and update contracts/.env"
+	@echo "  make deploy-base-sepolia - Deploy Base Sepolia contracts and update contracts/.env"
 	@echo "  make bundler-start - Start local Pimlico Alto bundler"
 	@echo "  make clean        - Remove broadcast and cache artifacts"
 
@@ -37,6 +38,9 @@ deploy: setup-vrf setup-entrypoint setup-lotto setup-entry-token setup-paymaster
 
 deploy-sepolia:
 	@chmod +x scripts/sepolia/deploy_sepolia.sh && ./scripts/sepolia/deploy_sepolia.sh
+
+deploy-base-sepolia:
+	@chmod +x scripts/baseSepolia/deploy_base_sepolia.sh && ./scripts/baseSepolia/deploy_base_sepolia.sh
 
 fulfill-randomness:
 	@LOTTO_ADDR="$(if $(LOTTO),$(LOTTO),$(filter 0x%,$(MAKECMDGOALS)))"; \
