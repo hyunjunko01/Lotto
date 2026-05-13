@@ -49,9 +49,31 @@ update_env_file() {
   local env_file="$1"
   local key="$2"
   local value="$3"
+  local section=""
 
   delete_env_key "$env_file" "$key"
-  echo "${key}=${value}" >> "$env_file"
+
+  case "$key" in
+    ANVIL_*) section="Local (Anvil)" ;;
+    BASE_SEPOLIA_*) section="Base Sepolia" ;;
+    SEPOLIA_*) section="Sepolia" ;;
+  esac
+
+  if [[ "$env_file" == ".env" && -n "$section" ]]; then
+    local tmp_file
+    tmp_file="$(mktemp "${env_file}.tmp.XXXXXX")"
+    awk -v section="$section" -v line="${key}=${value}" '
+      BEGIN { header_seen = 0; in_section = 0; inserted = 0 }
+      $0 == "# " section { print; header_seen = 1; next }
+      header_seen && $0 ~ /^# -+$/ { print; in_section = 1; header_seen = 0; next }
+      in_section && !inserted && $0 ~ /^# / { print line; inserted = 1; in_section = 0 }
+      { print }
+      END { if (!inserted) print line }
+    ' "$env_file" > "$tmp_file"
+    mv "$tmp_file" "$env_file"
+  else
+    echo "${key}=${value}" >> "$env_file"
+  fi
 }
 
 extract_create_address() {
@@ -133,6 +155,11 @@ assert_standard_entrypoint_healthy
 ANVIL_ENTRY_POINT="$ENTRYPOINT_STANDARD_ADDRESS"
 
 update_env_file .env ANVIL_ENTRY_POINT "$ANVIL_ENTRY_POINT"
+update_env_file "$FRONTEND_ENV_FILE" NEXT_PUBLIC_CHAIN_ID "$CHAIN_ID"
+update_env_file "$FRONTEND_ENV_FILE" NEXT_PUBLIC_CHAIN_NAME "Anvil Local"
+update_env_file "$FRONTEND_ENV_FILE" NEXT_PUBLIC_RPC_URL "$ANVIL_RPC_URL"
+update_env_file "$FRONTEND_ENV_FILE" AA_RPC_URL "$ANVIL_RPC_URL"
+update_env_file "$FRONTEND_ENV_FILE" AA_BUNDLER_URL "${AA_BUNDLER_URL:-http://127.0.0.1:4337/rpc}"
 update_env_file "$FRONTEND_ENV_FILE" NEXT_PUBLIC_ENTRYPOINT_ADDRESS "$ANVIL_ENTRY_POINT"
 update_env_file "$FRONTEND_ENV_FILE" AA_ENTRYPOINT_ADDRESS "$ANVIL_ENTRY_POINT"
 
@@ -156,6 +183,11 @@ echo "✓ Updated .env:"
 echo "  ANVIL_ENTRY_POINT=$ANVIL_ENTRY_POINT"
 echo "  ANVIL_ACCOUNT_FACTORY=$ANVIL_ACCOUNT_FACTORY"
 echo "✓ Updated frontend/.env.local:"
+echo "  NEXT_PUBLIC_CHAIN_ID=$CHAIN_ID"
+echo "  NEXT_PUBLIC_CHAIN_NAME=Anvil Local"
+echo "  NEXT_PUBLIC_RPC_URL=$ANVIL_RPC_URL"
+echo "  AA_RPC_URL=$ANVIL_RPC_URL"
+echo "  AA_BUNDLER_URL=${AA_BUNDLER_URL:-http://127.0.0.1:4337/rpc}"
 echo "  NEXT_PUBLIC_ENTRYPOINT_ADDRESS=$ANVIL_ENTRY_POINT"
 echo "  AA_ENTRYPOINT_ADDRESS=$ANVIL_ENTRY_POINT"
 echo "  NEXT_PUBLIC_ACCOUNT_FACTORY_ADDRESS=$ANVIL_ACCOUNT_FACTORY"

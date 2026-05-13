@@ -14,7 +14,7 @@ set +a
 
 CHAIN_ID="${SEPOLIA_CHAIN_ID:-11155111}"
 FRONTEND_ENV_FILE="../frontend/.env.local"
-PAYMASTER_INITIAL_DEPOSIT_ETH="${SEPOLIA_PAYMASTER_INITIAL_DEPOSIT_ETH:-0.05}"
+PAYMASTER_INITIAL_DEPOSIT_ETH="${SEPOLIA_PAYMASTER_INITIAL_DEPOSIT_ETH:-0.005}"
 UPDATE_FRONTEND_ENV="${UPDATE_FRONTEND_ENV_FOR_SEPOLIA:-false}"
 SEPOLIA_AA_BUNDLER_URL="${SEPOLIA_BUNDLER_URL:-${SEPOLIA_RPC_URL:-}}"
 
@@ -58,9 +58,31 @@ update_env_file() {
   local env_file="$1"
   local key="$2"
   local value="$3"
+  local section=""
 
   delete_env_key "$env_file" "$key"
-  echo "${key}=${value}" >> "$env_file"
+
+  case "$key" in
+    ANVIL_*) section="Local (Anvil)" ;;
+    BASE_SEPOLIA_*) section="Base Sepolia" ;;
+    SEPOLIA_*) section="Sepolia" ;;
+  esac
+
+  if [[ "$env_file" == ".env" && -n "$section" ]]; then
+    local tmp_file
+    tmp_file="$(mktemp "${env_file}.tmp.XXXXXX")"
+    awk -v section="$section" -v line="${key}=${value}" '
+      BEGIN { header_seen = 0; in_section = 0; inserted = 0 }
+      $0 == "# " section { print; header_seen = 1; next }
+      header_seen && $0 ~ /^# -+$/ { print; in_section = 1; header_seen = 0; next }
+      in_section && !inserted && $0 ~ /^# / { print line; inserted = 1; in_section = 0 }
+      { print }
+      END { if (!inserted) print line }
+    ' "$env_file" > "$tmp_file"
+    mv "$tmp_file" "$env_file"
+  else
+    echo "${key}=${value}" >> "$env_file"
+  fi
 }
 
 extract_create_address() {
@@ -172,6 +194,9 @@ fi
 PAYMASTER_DEPOSIT=$(cast call "$SEPOLIA_ENTRY_POINT" "balanceOf(address)(uint256)" "$SEPOLIA_PAYMASTER" --rpc-url "$SEPOLIA_RPC_URL")
 
 if [[ "$UPDATE_FRONTEND_ENV" == "true" ]]; then
+  update_env_file "$FRONTEND_ENV_FILE" NEXT_PUBLIC_CHAIN_ID "$CHAIN_ID"
+  update_env_file "$FRONTEND_ENV_FILE" NEXT_PUBLIC_CHAIN_NAME "Sepolia"
+  update_env_file "$FRONTEND_ENV_FILE" NEXT_PUBLIC_LOG_LOOKBACK_BLOCKS "10"
   update_env_file "$FRONTEND_ENV_FILE" NEXT_PUBLIC_RPC_URL "$SEPOLIA_RPC_URL"
   update_env_file "$FRONTEND_ENV_FILE" AA_RPC_URL "$SEPOLIA_RPC_URL"
   update_env_file "$FRONTEND_ENV_FILE" AA_BUNDLER_URL "$SEPOLIA_AA_BUNDLER_URL"
@@ -195,6 +220,9 @@ echo "  balanceOf($SEPOLIA_PAYMASTER)=$PAYMASTER_DEPOSIT wei"
 
 if [[ "$UPDATE_FRONTEND_ENV" == "true" ]]; then
   echo "✓ Updated frontend/.env.local for Sepolia"
+  echo "  NEXT_PUBLIC_CHAIN_ID=$CHAIN_ID"
+  echo "  NEXT_PUBLIC_CHAIN_NAME=Sepolia"
+  echo "  NEXT_PUBLIC_LOG_LOOKBACK_BLOCKS=10"
   echo "  NEXT_PUBLIC_RPC_URL=$SEPOLIA_RPC_URL"
   echo "  AA_RPC_URL=$SEPOLIA_RPC_URL"
   echo "  AA_BUNDLER_URL=$SEPOLIA_AA_BUNDLER_URL"
