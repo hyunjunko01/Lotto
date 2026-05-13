@@ -78,7 +78,10 @@ contract LottoImplementation is Initializable, ReentrancyGuard {
      * @dev So each lotto instance gets its own storage.
      * @dev Called by the factory immediately after Clones.clone()
      */
-    function initialize(uint256 _entryFee, uint256 _maxPlayers, address _entryToken, address _factory) external initializer {
+    function initialize(uint256 _entryFee, uint256 _maxPlayers, address _entryToken, address _factory)
+        external
+        initializer
+    {
         if (_entryToken == address(0)) revert Lotto__InvalidEntryToken();
         entryFee = _entryFee;
         maxPlayers = _maxPlayers;

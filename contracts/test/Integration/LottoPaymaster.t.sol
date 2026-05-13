@@ -12,6 +12,7 @@ import {EthAccountExecuteShim} from "../mock/EthAccountExecuteShim.sol";
 
 contract LottoEntryTokenMock {
     function claimTestTokens() external {}
+
     function approve(address, uint256) external pure returns (bool) {
         return true;
     }
@@ -34,7 +35,8 @@ contract LottoPaymasterTest is Test {
         entryToken = new LottoEntryTokenMock();
         lottoFactory.setLottoInstance(address(lottoInstance), true);
 
-        paymaster = new LottoPaymaster(IEntryPoint(entryPoint), address(this), address(lottoFactory), address(entryToken));
+        paymaster =
+            new LottoPaymaster(IEntryPoint(entryPoint), address(this), address(lottoFactory), address(entryToken));
         paymaster.setAllowedFactorySelector(LottoFactoryMock.createLotto.selector, true);
         paymaster.setAllowedLottoSelector(LottoImplementationMock.joinLotto.selector, true);
         paymaster.setAllowedLottoSelector(LottoImplementationMock.requestWinner.selector, true);
