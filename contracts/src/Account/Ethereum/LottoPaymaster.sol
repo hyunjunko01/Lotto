@@ -5,6 +5,10 @@ import {BasePaymaster} from "@account-abstraction/contracts/core/BasePaymaster.s
 import {IEntryPoint} from "@account-abstraction/contracts/interfaces/IEntryPoint.sol";
 import {PackedUserOperation} from "@account-abstraction/contracts/interfaces/PackedUserOperation.sol";
 import {SIG_VALIDATION_SUCCESS} from "@account-abstraction/contracts/core/Helpers.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {LottoEntryToken} from "../../Lotto/LottoEntryToken.sol";
+import {LottoFactory} from "../../Lotto/LottoFactory.sol";
+import {LottoImplementation} from "../../Lotto/LottoImplementation.sol";
 
 interface ILottoFactoryLike {
     function isLottoInstance(address lotto) external view returns (bool);
@@ -32,6 +36,16 @@ contract LottoPaymaster is BasePaymaster {
     {
         i_lottoFactory = lottoFactory;
         i_entryToken = entryToken;
+
+        // Default allowlists (one tx on deploy). Owner may still update via set* functions.
+        isAllowedFactorySelector[LottoFactory.createLotto.selector] = true;
+        isAllowedLottoSelector[LottoImplementation.joinLotto.selector] = true;
+        isAllowedLottoSelector[LottoImplementation.requestWinner.selector] = true;
+        isAllowedLottoSelector[LottoImplementation.withdrawPrize.selector] = true;
+        isAllowedLottoSelector[LottoImplementation.triggerRefundMode.selector] = true;
+        isAllowedLottoSelector[LottoImplementation.claimRefund.selector] = true;
+        isAllowedEntryTokenSelector[LottoEntryToken.claimTestTokens.selector] = true;
+        isAllowedEntryTokenSelector[IERC20.approve.selector] = true;
     }
 
     function setAllowedFactorySelector(bytes4 selector, bool allowed) external onlyOwner {

@@ -37,14 +37,6 @@ contract LottoPaymasterTest is Test {
 
         paymaster =
             new LottoPaymaster(IEntryPoint(entryPoint), address(this), address(lottoFactory), address(entryToken));
-        paymaster.setAllowedFactorySelector(LottoFactoryMock.createLotto.selector, true);
-        paymaster.setAllowedLottoSelector(LottoImplementationMock.joinLotto.selector, true);
-        paymaster.setAllowedLottoSelector(LottoImplementationMock.requestWinner.selector, true);
-        paymaster.setAllowedLottoSelector(LottoImplementationMock.withdrawPrize.selector, true);
-        paymaster.setAllowedLottoSelector(LottoImplementationMock.triggerRefundMode.selector, true);
-        paymaster.setAllowedLottoSelector(LottoImplementationMock.claimRefund.selector, true);
-        paymaster.setAllowedEntryTokenSelector(LottoEntryTokenMock.claimTestTokens.selector, true);
-        paymaster.setAllowedEntryTokenSelector(LottoEntryTokenMock.approve.selector, true);
     }
 
     function test_validatePaymasterUserOp_acceptsFactoryCreateLotto() external {
