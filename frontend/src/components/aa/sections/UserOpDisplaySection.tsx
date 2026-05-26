@@ -1,6 +1,6 @@
 'use client';
 
-import type { UserOpFields } from '@/components/aa/types';
+import type { UserOpFields } from '@/lib/aa/types';
 
 interface UserOpDisplaySectionProps {
     userOp: UserOpFields;

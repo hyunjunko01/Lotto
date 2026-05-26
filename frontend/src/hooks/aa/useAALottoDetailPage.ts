@@ -3,55 +3,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { Address, isAddress } from 'viem';
-import type { AAJoinAction } from '@/hooks/useAALottery';
-import { useAALottery } from '@/hooks/useAALottery';
-import { aaStateToLabel } from '@/hooks/useAAJoinLotteryIndex';
+import { useAALottery } from '@/hooks/aa/workspace/useAALottery';
+import type { AAJoinAction } from '@/lib/aa/types';
+import { lottoStateToLabel, LottoState } from '@/hooks/shared/lib/lottoState';
 
 const LOTTO_FACTORY_ADDRESS = process.env.NEXT_PUBLIC_LOTTO_FACTORY_ADDRESS;
 const ACCOUNT_FACTORY_ADDRESS = process.env.NEXT_PUBLIC_ACCOUNT_FACTORY_ADDRESS;
 
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
-
-export enum AALottoDetailState {
-    OPEN = 0,
-    FULL = 1,
-    CALCULATING = 2,
-    CLOSED = 3,
-    REFUNDING = 4,
-}
-
-export const AA_LOTTO_JOIN_ACTION_CARDS = [
-    {
-        action: 'approveEntryFee' as const,
-        title: 'approveEntryFee',
-        description: 'Step 1 — AA account sets ERC20 allowance for this lottery (do this before joinLotto).',
-    },
-    {
-        action: 'joinLotto' as const,
-        title: 'joinLotto',
-        description: 'Step 2 — After approve confirms and allowance ≥ entry fee, join the lottery.',
-    },
-    {
-        action: 'requestWinner' as const,
-        title: 'requestWinner',
-        description: 'After the lottery is full, request winner selection through VRF.',
-    },
-    {
-        action: 'triggerRefundMode' as const,
-        title: 'triggerRefundMode',
-        description: 'If VRF is stuck in CALCULATING past the timeout, switch the instance into REFUNDING mode.',
-    },
-    {
-        action: 'withdrawPrize' as const,
-        title: 'withdrawPrize',
-        description: 'The recorded winner withdraws the prize.',
-    },
-    {
-        action: 'claimRefund' as const,
-        title: 'claimRefund',
-        description: 'Claim your refundable entry fees after the instance enters REFUNDING mode.',
-    },
-] as const;
 
 export function useAALottoDetailPage() {
     const params = useParams<{ address: string }>();
@@ -81,7 +40,7 @@ export function useAALottoDetailPage() {
         initialJoinTargetAddress: lottoAddress ?? '',
     });
 
-    const mustRefreshAaAccount = Boolean(aa.sessionToken) && !aa.aaAccountHydrated && !aa.isLoading;
+    const mustRefreshAAAccount = Boolean(aa.sessionToken) && !aa.AAAccountHydrated && !aa.isLoading;
 
     const selectedSummary = useMemo(
         () => aa.lottoInstances.find((item) => item.address.toLowerCase() === (lottoAddress ?? '').toLowerCase()),
@@ -90,28 +49,28 @@ export function useAALottoDetailPage() {
 
     const joinEntryFeeWei = selectedSummary?.entryFee;
     const insufficientLetKnown =
-        aa.aaAccountHydrated && aa.letBalance !== null && joinEntryFeeWei !== undefined && aa.letBalance < joinEntryFeeWei;
+        aa.AAAccountHydrated && aa.letBalance !== null && joinEntryFeeWei !== undefined && aa.letBalance < joinEntryFeeWei;
 
     const statusNumber = selectedSummary?.lottoState !== undefined ? Number(selectedSummary.lottoState) : undefined;
-    const canApproveOrJoin = statusNumber === AALottoDetailState.OPEN;
-    const canRequestWinner = statusNumber === AALottoDetailState.FULL;
+    const canApproveOrJoin = statusNumber === LottoState.OPEN;
+    const canRequestWinner = statusNumber === LottoState.FULL;
     const refundTimeoutAt =
         selectedSummary?.randomnessRequestedAt !== undefined && selectedSummary.calculatingTimeout !== undefined
             ? selectedSummary.randomnessRequestedAt + selectedSummary.calculatingTimeout
             : undefined;
     const isRefundTimeoutElapsed =
-        statusNumber === AALottoDetailState.CALCULATING &&
+        statusNumber === LottoState.CALCULATING &&
         refundTimeoutAt !== undefined &&
         currentTimestamp >= refundTimeoutAt;
     const canTriggerRefundMode = isRefundTimeoutElapsed;
     const winnerAddr = selectedSummary?.winner;
     const hasWinner = Boolean(winnerAddr && winnerAddr.toLowerCase() !== ZERO_ADDRESS.toLowerCase());
-    const isAaAccountWinner =
+    const isAAAccountWinner =
         Boolean(aa.accountAddress && winnerAddr && hasWinner) &&
         aa.accountAddress!.toLowerCase() === winnerAddr!.toLowerCase();
     const canWithdrawPrize =
-        statusNumber === AALottoDetailState.CLOSED && !selectedSummary?.isPrizeWithdrawn && isAaAccountWinner;
-    const canClaimRefund = statusNumber === AALottoDetailState.REFUNDING;
+        statusNumber === LottoState.CLOSED && !selectedSummary?.isPrizeWithdrawn && isAAAccountWinner;
+    const canClaimRefund = statusNumber === LottoState.REFUNDING;
 
     useEffect(() => {
         if (!lottoAddress || !selectedSummary) return;
@@ -133,8 +92,8 @@ export function useAALottoDetailPage() {
         hasValidConfig,
         expandedAction,
         setExpandedAction,
-        stateLabel: (v?: bigint | number) => aaStateToLabel(v),
-        mustRefreshAaAccount,
+        stateLabel: lottoStateToLabel,
+        mustRefreshAAAccount,
         selectedSummary,
         joinEntryFeeWei,
         insufficientLetKnown,
@@ -146,7 +105,7 @@ export function useAALottoDetailPage() {
         refundTimeoutAt,
         isRefundTimeoutElapsed,
         canClaimRefund,
-        isAaAccountWinner,
+        isAAAccountWinner,
         hasWinner,
         ...aa,
     };

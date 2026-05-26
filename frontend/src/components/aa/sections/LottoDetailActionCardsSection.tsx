@@ -1,0 +1,224 @@
+'use client';
+
+import { AASection } from '@/components/aa/layout/AASection';
+import { AA_LOTTO_JOIN_ACTION_CARDS } from '@/hooks/aa/lottoDetailConstants';
+import type { useAALottoDetailPage } from '@/hooks/aa/useAALottoDetailPage';
+import { LottoState } from '@/hooks/shared/lib/lottoState';
+import type { AAUi } from '@/styles/aa/uiStyles';
+
+type Detail = ReturnType<typeof useAALottoDetailPage>;
+
+type Props = {
+    ui: AAUi;
+    d: Detail;
+};
+
+export function LottoDetailActionCardsSection({ ui, d }: Props) {
+    return (
+        <AASection ui={ui}>
+            <div style={{ display: 'grid', gap: 12, marginTop: 0 }}>
+                {AA_LOTTO_JOIN_ACTION_CARDS.map((card) => {
+                    const preview = d.getPreviewUserOpForJoinAction(card.action);
+                    const isExpanded = d.expandedAction === card.action;
+                    const isSelected = d.selectedJoinAction === card.action;
+                    const blocksInsufficientLet =
+                        d.insufficientLetKnown && (card.action === 'approveEntryFee' || card.action === 'joinLotto');
+                    const blocksWrongState =
+                        (card.action === 'approveEntryFee' || card.action === 'joinLotto') && !d.canApproveOrJoin
+                            ? true
+                            : card.action === 'requestWinner' && !d.canRequestWinner
+                              ? true
+                              : card.action === 'triggerRefundMode' && !d.canTriggerRefundMode
+                                ? true
+                                : card.action === 'withdrawPrize' && !d.canWithdrawPrize;
+                    const blocksJoinWithoutAllowance =
+                        card.action === 'joinLotto' && d.canApproveOrJoin && !d.hasSufficientJoinAllowance;
+                    const blocksClaimRefund = card.action === 'claimRefund' && !d.canClaimRefund;
+
+                    const signEnabled =
+                        d.hasValidConfig &&
+                        !d.isLoading &&
+                        !d.mustRefreshAAAccount &&
+                        !blocksInsufficientLet &&
+                        !blocksWrongState &&
+                        !blocksJoinWithoutAllowance &&
+                        !blocksClaimRefund;
+
+                    const sendEnabled =
+                        d.hasValidConfig &&
+                        !d.isLoading &&
+                        isSelected &&
+                        d.userOp.signature !== '0x' &&
+                        !blocksWrongState &&
+                        !blocksJoinWithoutAllowance &&
+                        !blocksClaimRefund;
+
+                    return (
+                        <div
+                            key={card.action}
+                            style={{
+                                border: isSelected ? '1px solid #76b4be' : '1px solid #32515a',
+                                borderRadius: 12,
+                                padding: 14,
+                                background: 'rgba(10, 35, 44, 0.6)',
+                            }}
+                        >
+                            <h3 style={{ margin: 0 }}>{card.title}</h3>
+                            <p style={{ margin: '8px 0 0', color: '#c6dfe2' }}>{card.description}</p>
+
+                            <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        d.setSelectedJoinAction(card.action);
+                                        void d.handleSignUserOpForJoinAction(card.action);
+                                    }}
+                                    disabled={!signEnabled}
+                                    style={{
+                                        flex: 1,
+                                        padding: '10px 12px',
+                                        borderRadius: 10,
+                                        border: '1px solid #76b4be',
+                                        background: 'linear-gradient(135deg, #0f7f8f, #155a8a)',
+                                        color: '#ecf8ff',
+                                        cursor: signEnabled ? 'pointer' : 'not-allowed',
+                                        opacity: signEnabled ? 1 : 0.6,
+                                    }}
+                                >
+                                    Sign
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        d.setSelectedJoinAction(card.action);
+                                        void d.handleSendUserOp();
+                                    }}
+                                    disabled={!sendEnabled}
+                                    style={{
+                                        flex: 1,
+                                        padding: '10px 12px',
+                                        borderRadius: 10,
+                                        border: '1px solid #76b4be',
+                                        background: 'linear-gradient(135deg, #1f6f58, #2a8b66)',
+                                        color: '#ecf8ff',
+                                        cursor: sendEnabled ? 'pointer' : 'not-allowed',
+                                        opacity: sendEnabled ? 1 : 0.6,
+                                    }}
+                                >
+                                    Send
+                                </button>
+                            </div>
+
+                            {(card.action === 'approveEntryFee' || card.action === 'joinLotto') && !d.canApproveOrJoin ? (
+                                <p style={{ marginTop: 10, marginBottom: 0, ...ui.warningText }}>
+                                    {d.statusNumber === undefined
+                                        ? 'Waiting for instance status from the chain. Use Refresh Account State, or go back and reopen this instance.'
+                                        : 'Enabled only when lottery status is OPEN.'}
+                                </p>
+                            ) : null}
+                            {card.action === 'joinLotto' && d.canApproveOrJoin && blocksJoinWithoutAllowance ? (
+                                <p style={{ marginTop: 10, marginBottom: 0, ...ui.warningText }}>
+                                    Complete approveEntryFee first (sign → send). joinLotto stays disabled until on-chain
+                                    allowance is at least the entry fee.
+                                </p>
+                            ) : null}
+                            {card.action === 'requestWinner' && !d.canRequestWinner ? (
+                                <p style={{ marginTop: 10, marginBottom: 0, ...ui.warningText }}>
+                                    {d.statusNumber === undefined
+                                        ? 'Waiting for instance status from the chain. Use Refresh Account State or reload.'
+                                        : 'Enabled only when lottery status is FULL.'}
+                                </p>
+                            ) : null}
+                            {card.action === 'triggerRefundMode' && !d.canTriggerRefundMode ? (
+                                <p style={{ marginTop: 10, marginBottom: 0, ...ui.warningText }}>
+                                    {d.statusNumber === undefined
+                                        ? 'Waiting for instance status from the chain. Use Refresh Account State or reload.'
+                                        : d.statusNumber === LottoState.CALCULATING
+                                          ? 'Enabled only after the CALCULATING timeout has elapsed.'
+                                          : 'Enabled only when lottery status is CALCULATING.'}
+                                </p>
+                            ) : null}
+                            {card.action === 'withdrawPrize' && !d.canWithdrawPrize ? (
+                                <p style={{ marginTop: 10, marginBottom: 0, ...ui.warningText }}>
+                                    {d.statusNumber === LottoState.CLOSED &&
+                                    !d.selectedSummary?.isPrizeWithdrawn &&
+                                    d.hasWinner &&
+                                    !d.isAAAccountWinner
+                                        ? 'Only the winner AA account can withdraw the prize.'
+                                        : 'Enabled only when status is CLOSED, prize not withdrawn, and your AA account is the winner.'}
+                                </p>
+                            ) : null}
+                            {card.action === 'claimRefund' && !d.canClaimRefund ? (
+                                <p style={{ marginTop: 10, marginBottom: 0, ...ui.warningText }}>
+                                    {d.statusNumber === undefined
+                                        ? 'Waiting for instance status from the chain. Use Refresh Account State or reload.'
+                                        : 'Enabled only when lottery status is REFUNDING.'}
+                                </p>
+                            ) : null}
+
+                            <button
+                                type="button"
+                                onClick={() => d.setExpandedAction((prev) => (prev === card.action ? null : card.action))}
+                                style={{
+                                    marginTop: 10,
+                                    width: '100%',
+                                    padding: '9px 12px',
+                                    borderRadius: 10,
+                                    border: '1px solid #5d7980',
+                                    background: '#13242a',
+                                    color: '#d9eef1',
+                                    cursor: 'pointer',
+                                    textAlign: 'left',
+                                }}
+                            >
+                                {isExpanded ? '▼ Hide Auto UserOp Values' : '▶ View Auto UserOp Values'}
+                            </button>
+
+                            {isExpanded ? (
+                                <div
+                                    style={{
+                                        marginTop: 10,
+                                        border: '1px solid #2d3f45',
+                                        borderRadius: 10,
+                                        padding: 10,
+                                        background: 'rgba(7, 19, 24, 0.72)',
+                                        display: 'grid',
+                                        gap: 6,
+                                        fontFamily: 'ui-monospace, Menlo, monospace',
+                                        fontSize: '0.82rem',
+                                        color: '#d4eaee',
+                                    }}
+                                >
+                                    <p style={{ margin: 0, wordBreak: 'break-all' }}>
+                                        <strong>sender:</strong> {preview.sender || '-'}
+                                    </p>
+                                    <p style={{ margin: 0, wordBreak: 'break-all' }}>
+                                        <strong>nonce:</strong> {preview.nonce}
+                                    </p>
+                                    <p style={{ margin: 0, wordBreak: 'break-all' }}>
+                                        <strong>initCode:</strong> {preview.initCode}
+                                    </p>
+                                    <p style={{ margin: 0, wordBreak: 'break-all' }}>
+                                        <strong>callData:</strong> {preview.callData}
+                                    </p>
+                                    <p style={{ margin: 0, wordBreak: 'break-all' }}>
+                                        <strong>accountGasLimits:</strong> {preview.accountGasLimits}
+                                    </p>
+                                    <p style={{ margin: 0, wordBreak: 'break-all' }}>
+                                        <strong>preVerificationGas:</strong> {preview.preVerificationGas}
+                                    </p>
+                                    <p style={{ margin: 0, wordBreak: 'break-all' }}>
+                                        <strong>gasFees:</strong> {preview.gasFees}
+                                    </p>
+                                    <p style={{ margin: 0, wordBreak: 'break-all' }}>
+                                        <strong>paymasterAndData:</strong> {preview.paymasterAndData}
+                                    </p>
+                                </div>
+                            ) : null}
+                        </div>
+                    );
+                })}
+            </div>
+        </AASection>
+    );
+}

@@ -1,6 +1,6 @@
 'use client';
 
-import type { AALotteryMode } from '@/hooks/useAALottery';
+import type { AALotteryMode } from '@/lib/aa/types';
 
 interface LottoParamsSectionProps {
     mode: AALotteryMode;

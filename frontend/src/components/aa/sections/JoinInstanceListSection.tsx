@@ -1,7 +1,7 @@
 'use client';
 
 import { formatEther } from 'viem';
-import type { AALottoSummary } from '@/hooks/useAALottery';
+import type { AALottoSummary } from '@/lib/aa/types';
 
 interface JoinInstanceListSectionProps {
     lottoInstances: AALottoSummary[];

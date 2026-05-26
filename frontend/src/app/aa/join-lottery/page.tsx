@@ -1,23 +1,32 @@
 'use client';
 
 import Link from 'next/link';
-import { formatEther } from 'viem';
+import { useMemo } from 'react';
+import { type Address, formatEther, isAddress } from 'viem';
 import { AAHero } from '@/components/aa/layout/AAHero';
 import { AASection } from '@/components/aa/layout/AASection';
 import { useAAUi } from '@/components/aa/layout/useAAUi';
-import { aaStateToLabel, useAAJoinLotteryIndex } from '@/hooks/useAAJoinLotteryIndex';
+import { useAALottoInstances } from '@/hooks/aa/workspace/reads/useAALottoInstances';
+import { LOTTO_FACTORY_ADDRESS_ENV } from '@/hooks/shared/factory/constants';
+import { lottoStateToLabel } from '@/hooks/shared/lib/lottoState';
 
 export default function AAJoinLotteryPage() {
   const ui = useAAUi();
-  const {
+
+  const configuredFactoryAddress = useMemo(
+    () =>
+      typeof LOTTO_FACTORY_ADDRESS_ENV === 'string' && isAddress(LOTTO_FACTORY_ADDRESS_ENV)
+        ? (LOTTO_FACTORY_ADDRESS_ENV as Address)
+        : undefined,
+    []
+  );
+
+  const { lottoInstances, isLoadingLottoInstances, lottoInstancesError } = useAALottoInstances(
     configuredFactoryAddress,
-    parsedLottoAddresses,
-    isLoadingLottoAddresses,
-    isLottoAddressesError,
-    isLoadingLottoStats,
-    lottoSummaries,
-    lottoFactoryAddressText,
-  } = useAAJoinLotteryIndex();
+    { enabled: Boolean(configuredFactoryAddress), refetchIntervalMs: 5000 }
+  );
+
+  const lottoFactoryAddressText = LOTTO_FACTORY_ADDRESS_ENV ?? '(missing NEXT_PUBLIC_LOTTO_FACTORY_ADDRESS)';
 
   return (
     <main style={ui.pageMain}>
@@ -32,42 +41,42 @@ export default function AAJoinLotteryPage() {
           {!configuredFactoryAddress ? (
             <p style={ui.warningText}>`NEXT_PUBLIC_LOTTO_FACTORY_ADDRESS` is missing or invalid.</p>
           ) : null}
-          {isLoadingLottoAddresses ? <p style={{ color: '#c6dfe2' }}>Loading lottery instances...</p> : null}
-          {isLottoAddressesError ? <p style={ui.warningText}>Failed to load lottery instances.</p> : null}
-          {!isLoadingLottoAddresses && parsedLottoAddresses.length === 0 ? <p style={{ color: '#c6dfe2' }}>No instances found yet.</p> : null}
-          {parsedLottoAddresses.length > 0 && isLoadingLottoStats ? <p style={{ color: '#c6dfe2' }}>Loading instance stats...</p> : null}
+          {isLoadingLottoInstances && lottoInstances.length === 0 ? (
+            <p style={{ color: '#c6dfe2' }}>Loading lottery instances...</p>
+          ) : null}
+          {lottoInstancesError ? <p style={ui.warningText}>{lottoInstancesError}</p> : null}
+          {!isLoadingLottoInstances && lottoInstances.length === 0 && !lottoInstancesError ? (
+            <p style={{ color: '#c6dfe2' }}>No instances found yet.</p>
+          ) : null}
 
-          {parsedLottoAddresses.length > 0 ? (
+          {lottoInstances.length > 0 ? (
             <div style={{ display: 'grid', gap: 10 }}>
-              {parsedLottoAddresses.map((lotto) => {
-                const summary = lottoSummaries.get(lotto);
-                return (
-                  <Link
-                    key={lotto}
-                    href={`/aa/lotto/${lotto}`}
-                    style={{
-                      display: 'block',
-                      border: '1px solid #31525b',
-                      borderRadius: 10,
-                      padding: '12px 14px',
-                      color: '#8fe8ff',
-                      textDecoration: 'none',
-                      wordBreak: 'break-all',
-                      background: 'rgba(8, 22, 30, 0.7)',
-                    }}
-                  >
-                    <p style={{ margin: 0, textDecoration: 'underline' }}>{lotto}</p>
-                    <p style={{ margin: '8px 0 0', color: '#d4eaee' }}>Status: {aaStateToLabel(summary?.lottoState)}</p>
-                    <p style={{ margin: '4px 0 0', color: '#d4eaee' }}>
-                      Entry Fee: {summary?.entryFee !== undefined ? formatEther(summary.entryFee) : '-'} LET
-                    </p>
-                    <p style={{ margin: '4px 0 0', color: '#d4eaee' }}>
-                      Players: {summary?.playerCount !== undefined ? Number(summary.playerCount) : '-'} /{' '}
-                      {summary?.maxPlayers !== undefined ? Number(summary.maxPlayers) : '-'}
-                    </p>
-                  </Link>
-                );
-              })}
+              {lottoInstances.map((summary) => (
+                <Link
+                  key={summary.address}
+                  href={`/aa/lotto/${summary.address}`}
+                  style={{
+                    display: 'block',
+                    border: '1px solid #31525b',
+                    borderRadius: 10,
+                    padding: '12px 14px',
+                    color: '#8fe8ff',
+                    textDecoration: 'none',
+                    wordBreak: 'break-all',
+                    background: 'rgba(8, 22, 30, 0.7)',
+                  }}
+                >
+                  <p style={{ margin: 0, textDecoration: 'underline' }}>{summary.address}</p>
+                  <p style={{ margin: '8px 0 0', color: '#d4eaee' }}>Status: {lottoStateToLabel(summary.lottoState)}</p>
+                  <p style={{ margin: '4px 0 0', color: '#d4eaee' }}>
+                    Entry Fee: {summary.entryFee !== undefined ? formatEther(summary.entryFee) : '-'} LET
+                  </p>
+                  <p style={{ margin: '4px 0 0', color: '#d4eaee' }}>
+                    Players: {summary.playerCount !== undefined ? Number(summary.playerCount) : '-'} /{' '}
+                    {summary.maxPlayers !== undefined ? Number(summary.maxPlayers) : '-'}
+                  </p>
+                </Link>
+              ))}
             </div>
           ) : null}
         </AASection>

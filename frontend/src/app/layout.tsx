@@ -1,7 +1,7 @@
 // src/app/layout.tsx
 import './globals.css';
-import { Providers } from '@/components/Providers';
-import { AppHeader } from '@/components/AppHeader';
+import { Providers } from '@/components/shared/Providers';
+import { AppHeader } from '@/components/shared/AppHeader';
 
 export default function RootLayout({
   children,

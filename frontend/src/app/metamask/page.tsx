@@ -1,8 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { MetamaskHero } from '@/components/metamask/MetamaskHero';
-import { useMetamaskUi } from '@/components/metamask/useMetamaskUi';
+import { MetamaskHero } from '@/components/metamask/layout/MetamaskHero';
+import { useMetamaskUi } from '@/components/metamask/layout/useMetamaskUi';
 
 export default function MetamaskHomePage() {
     const ui = useMetamaskUi('warm');

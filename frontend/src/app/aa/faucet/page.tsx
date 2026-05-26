@@ -1,7 +1,7 @@
 'use client';
 
 import { isAddress } from 'viem';
-import { AALotteryWorkspace } from '@/components/aa/AALotteryWorkspace';
+import { AALotteryWorkspace } from '@/components/aa/workspace/AALotteryWorkspace';
 import { AAHero } from '@/components/aa/layout/AAHero';
 import { AASection } from '@/components/aa/layout/AASection';
 import { useAAUi } from '@/components/aa/layout/useAAUi';
