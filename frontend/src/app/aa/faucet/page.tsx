@@ -39,6 +39,7 @@ export default function AAFaucetPage() {
         ) : (
           <AALotteryWorkspace
             mode="faucet"
+            gasEstimateMode="manual"
             title="Web3Auth AA + Token Faucet"
             subtitle="After login, sign and send a UserOperation to call the faucet from your AA account."
             lottoFactoryAddress={LOTTO_FACTORY_ADDRESS}

@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import type { AALotteryMode } from '@/lib/aa/types';
+import type { AAGasEstimateMode, AALotteryMode } from '@/lib/aa/types';
 import { useAALottery } from '@/hooks/aa/workspace/useAALottery';
 import { Web3AuthSection } from '@/components/aa/sections/Web3AuthSection';
 import { AccountStatusSection } from '@/components/aa/sections/AccountStatusSection';
@@ -13,6 +13,7 @@ import { JoinInstanceListSection } from '@/components/aa/sections/JoinInstanceLi
 
 type Props = {
     mode: AALotteryMode;
+    gasEstimateMode?: AAGasEstimateMode;
     title: string;
     subtitle: string;
     lottoFactoryAddress: string;
@@ -20,7 +21,15 @@ type Props = {
     entryTokenAddress?: string;
 };
 
-export function AALotteryWorkspace({ mode, title, subtitle, lottoFactoryAddress, accountFactoryAddress, entryTokenAddress }: Props) {
+export function AALotteryWorkspace({
+    mode,
+    gasEstimateMode = 'auto',
+    title,
+    subtitle,
+    lottoFactoryAddress,
+    accountFactoryAddress,
+    entryTokenAddress,
+}: Props) {
     const clientId = process.env.NEXT_PUBLIC_WEB3AUTH_CLIENT_ID;
     const isReady = useMemo(() => Boolean(clientId), [clientId]);
 
@@ -57,13 +66,14 @@ export function AALotteryWorkspace({ mode, title, subtitle, lottoFactoryAddress,
         lottoInstancesError,
         fetchLottoInstances,
         handleSelectJoinTarget,
+        handleEstimateCurrentUserOp,
         handleUserOpFieldChange,
         handleSignUserOp,
         handleSendUserOp,
         handleWeb3AuthLogin,
         handleRefresh,
         handleLogout,
-    } = useAALottery({ mode, lottoFactoryAddress, accountFactoryAddress, entryTokenAddress });
+    } = useAALottery({ mode, lottoFactoryAddress, accountFactoryAddress, entryTokenAddress, gasEstimateMode });
 
     const mustRefreshAAAccount =
         Boolean(sessionToken) && !AAAccountHydrated && !isLoading;
@@ -83,6 +93,12 @@ export function AALotteryWorkspace({ mode, title, subtitle, lottoFactoryAddress,
         Boolean(sessionToken) &&
         AAAccountHydrated &&
         (!gasEstimateReady || isEstimatingGas || Boolean(gasEstimateError));
+    const showManualEstimateButton = gasEstimateMode === 'manual' && mode !== 'join';
+    const estimateDisabled =
+        mustRefreshAAAccount ||
+        joinLetBlocksSign ||
+        !joinSignStateOk ||
+        isEstimatingGas;
 
     return (
         <section
@@ -182,7 +198,9 @@ export function AALotteryWorkspace({ mode, title, subtitle, lottoFactoryAddress,
                 >
                     {isEstimatingGas
                         ? 'Estimating UserOp gas from the bundler…'
-                        : 'Waiting for bundler gas estimate before Sign / Send.'}
+                        : showManualEstimateButton
+                          ? 'Click Estimate Gas before Sign / Send.'
+                          : 'Waiting for bundler gas estimate before Sign / Send.'}
                 </div>
             ) : null}
 
@@ -234,9 +252,11 @@ export function AALotteryWorkspace({ mode, title, subtitle, lottoFactoryAddress,
             {showAdvanced && <AdvancedSettingsSection userOp={userOp} onFieldChange={handleUserOpFieldChange} />}
 
             <ActionButtonsSection
+                onEstimate={showManualEstimateButton ? () => void handleEstimateCurrentUserOp() : undefined}
                 onSign={handleSignUserOp}
                 onSend={handleSendUserOp}
                 isLoading={isLoading}
+                estimateDisabled={estimateDisabled}
                 signDisabled={mustRefreshAAAccount || joinLetBlocksSign || !joinSignStateOk || gasBlocksSignSend}
                 sendDisabled={
                     mustRefreshAAAccount ||

@@ -1,6 +1,6 @@
 export type AALotteryMode = 'create' | 'join' | 'faucet';
 
-/** `auto`: estimate on draft changes. `manual`: user clicks Estimate per join action. */
+/** `auto`: estimate on draft changes. `manual`: user clicks Estimate for the currently selected flow/action. */
 export type AAGasEstimateMode = 'auto' | 'manual';
 
 export type AAJoinAction =

@@ -187,6 +187,22 @@ export function useAALottery({
         [estimateForAction, gasEstimateMode, setSelectedJoinAction]
     );
 
+    const handleEstimateCurrentUserOp = useCallback(async () => {
+        if (gasEstimateMode !== 'manual') {
+            return;
+        }
+        const action = selectedJoinAction;
+        const targetLabel = mode === 'join' ? action : mode;
+        setStatus(`Estimating gas for ${targetLabel}...`);
+        try {
+            await estimateForAction(action);
+            setStatus(`Gas estimate ready for ${targetLabel}. Sign, then send.`);
+        } catch (error) {
+            const message = error instanceof Error ? error.message : 'Failed to estimate UserOp gas.';
+            setStatus(`Error: ${message}`);
+        }
+    }, [estimateForAction, gasEstimateMode, mode, selectedJoinAction]);
+
     const hydrateAAAccount = useCallback(
         async (owner: string) => {
             const nextAccountAddress = await account.fetchAAAccount(owner);
@@ -350,6 +366,7 @@ export function useAALottery({
         fetchLottoInstances: lottoReads.fetchLottoInstances,
         handleSelectJoinTarget,
         handleEstimateJoinAction,
+        handleEstimateCurrentUserOp,
         handleUserOpFieldChange: draft.handleUserOpFieldChange,
         handleSignUserOp: signSend.handleSignUserOp,
         handleSignUserOpForJoinAction: signSend.handleSignUserOpForJoinAction,

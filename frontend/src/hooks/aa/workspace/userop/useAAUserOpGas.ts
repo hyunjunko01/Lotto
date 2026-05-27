@@ -1,10 +1,9 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { IProvider } from '@web3auth/base';
 import { isAddress } from 'viem';
 import { buildJoinActionCallData } from '@/lib/aa/call-data';
-import { AA_JOIN_ACTIONS } from '@/lib/aa/constants';
 import type { AAGasEstimateMode, AALotteryMode, AAJoinAction } from '@/lib/aa/types';
 import { getAAGasEstimator, isStaticGasEstimator } from '@/lib/aa/userop/gas/getAAGasEstimator';
 import { createEstimateRequestGas } from '@/lib/aa/userop/gas/hashAnchorGas';
@@ -26,14 +25,6 @@ type UseAAUserOpGasParams = {
     selectedJoinEntryToken?: string;
 };
 
-function emptyActionGasMap(): Partial<Record<AAJoinAction, UserOpGasEstimate>> {
-    return {};
-}
-
-function emptyActionErrorMap(): Partial<Record<AAJoinAction, string>> {
-    return {};
-}
-
 export function useAAUserOpGas({
     mode,
     selectedJoinAction,
@@ -52,20 +43,9 @@ export function useAAUserOpGas({
     const useStaticEstimator = isStaticGasEstimator();
     const manualMode = gasEstimateMode === 'manual';
 
-    const estimateRequestGas = useMemo(
-        () => createEstimateRequestGas(mode, paymasterAddress, selectedJoinAction),
-        [mode, paymasterAddress, selectedJoinAction]
-    );
-
     const [bundlerGas, setBundlerGas] = useState<UserOpGasEstimate | null>(null);
     const [isEstimating, setIsEstimating] = useState(false);
     const [estimateError, setEstimateError] = useState<string | null>(null);
-
-    const [gasByAction, setGasByAction] = useState<Partial<Record<AAJoinAction, UserOpGasEstimate>>>(
-        emptyActionGasMap
-    );
-    const [errorByAction, setErrorByAction] = useState<Partial<Record<AAJoinAction, string>>>(emptyActionErrorMap);
-    const [estimatingAction, setEstimatingAction] = useState<AAJoinAction | null>(null);
 
     const canEstimate = Boolean(
         sender &&
@@ -136,9 +116,9 @@ export function useAAUserOpGas({
     );
 
     const clearManualEstimates = useCallback(() => {
-        setGasByAction(emptyActionGasMap());
-        setErrorByAction(emptyActionErrorMap());
-        setEstimatingAction(null);
+        setBundlerGas(null);
+        setEstimateError(null);
+        setIsEstimating(false);
     }, []);
 
     useEffect(() => {
@@ -146,7 +126,16 @@ export function useAAUserOpGas({
             return;
         }
         clearManualEstimates();
-    }, [clearManualEstimates, manualMode, nonce, joinTargetAddress, selectedJoinEntryFee, selectedJoinEntryToken]);
+    }, [
+        callData,
+        clearManualEstimates,
+        manualMode,
+        nonce,
+        selectedJoinAction,
+        joinTargetAddress,
+        selectedJoinEntryFee,
+        selectedJoinEntryToken,
+    ]);
 
     useEffect(() => {
         if (manualMode || !canEstimate) {
@@ -206,29 +195,21 @@ export function useAAUserOpGas({
             if (!canEstimateAction) {
                 throw new Error('Connect Web3Auth and load the AA account before estimating gas.');
             }
-
-            setEstimatingAction(action);
-            setErrorByAction((prev) => {
-                const next = { ...prev };
-                delete next[action];
-                return next;
-            });
+            setIsEstimating(true);
+            setEstimateError(null);
+            setBundlerGas(null);
 
             try {
                 const result = await runEstimate(action, actionCallData);
-                setGasByAction((prev) => ({ ...prev, [action]: result }));
+                setBundlerGas(result);
                 return result;
             } catch (error) {
                 const message = error instanceof Error ? error.message : 'Failed to estimate UserOp gas.';
-                setErrorByAction((prev) => ({ ...prev, [action]: message }));
-                setGasByAction((prev) => {
-                    const next = { ...prev };
-                    delete next[action];
-                    return next;
-                });
+                setEstimateError(message);
+                setBundlerGas(null);
                 throw new Error(message);
             } finally {
-                setEstimatingAction(null);
+                setIsEstimating(false);
             }
         },
         [ownerAddress, resolveCallDataForAction, runEstimate, sender, web3Provider]
@@ -237,41 +218,50 @@ export function useAAUserOpGas({
     const isGasReadyForAction = useCallback(
         (action: AAJoinAction) => {
             if (manualMode) {
-                return Boolean(gasByAction[action]) && !errorByAction[action] && estimatingAction !== action;
+                return (
+                    action === selectedJoinAction &&
+                    canEstimate &&
+                    bundlerGas !== null &&
+                    !estimateError &&
+                    !isEstimating
+                );
             }
             return canEstimate && bundlerGas !== null && !estimateError && !isEstimating;
         },
-        [manualMode, gasByAction, errorByAction, estimatingAction, canEstimate, bundlerGas, estimateError, isEstimating]
+        [manualMode, selectedJoinAction, canEstimate, bundlerGas, estimateError, isEstimating]
     );
 
     const getGasForAction = useCallback(
         (action: AAJoinAction): UserOpGasEstimate => {
             if (manualMode) {
-                return gasByAction[action] ?? EMPTY_USER_OP_GAS;
+                if (action !== selectedJoinAction) {
+                    return EMPTY_USER_OP_GAS;
+                }
+                return bundlerGas ?? EMPTY_USER_OP_GAS;
             }
             return bundlerGas ?? EMPTY_USER_OP_GAS;
         },
-        [manualMode, gasByAction, bundlerGas]
+        [manualMode, selectedJoinAction, bundlerGas]
     );
 
     const getEstimateErrorForAction = useCallback(
         (action: AAJoinAction): string | null => {
             if (manualMode) {
-                return errorByAction[action] ?? null;
+                return action === selectedJoinAction ? estimateError : null;
             }
             return estimateError;
         },
-        [manualMode, errorByAction, estimateError]
+        [manualMode, selectedJoinAction, estimateError]
     );
 
     const isEstimatingAction = useCallback(
         (action: AAJoinAction) => {
             if (manualMode) {
-                return estimatingAction === action;
+                return action === selectedJoinAction && isEstimating;
             }
             return isEstimating;
         },
-        [manualMode, estimatingAction, isEstimating]
+        [manualMode, selectedJoinAction, isEstimating]
     );
 
     const gasEstimateReady = manualMode
@@ -286,7 +276,6 @@ export function useAAUserOpGas({
         isEstimating,
         estimateError,
         gasEstimateMode,
-        gasByAction,
         estimateForAction,
         isGasReadyForAction,
         getGasForAction,
@@ -294,7 +283,5 @@ export function useAAUserOpGas({
         isEstimatingAction,
         clearManualEstimates,
         useStaticEstimator,
-        /** All join actions (manual mode UI). */
-        joinActions: AA_JOIN_ACTIONS,
     };
 }

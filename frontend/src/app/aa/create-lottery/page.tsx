@@ -39,6 +39,7 @@ export default function AACreateLotteryPage() {
         ) : (
           <AALotteryWorkspace
             mode="create"
+            gasEstimateMode="manual"
             title="Web3Auth AA + Create Lottery"
             subtitle="After Web3Auth login, this flow prepares your AA account and executes `factory.createLotto`."
             lottoFactoryAddress={LOTTO_FACTORY_ADDRESS}
