@@ -23,6 +23,7 @@ export function useAALottery({
     accountFactoryAddress,
     entryTokenAddress,
     initialJoinTargetAddress,
+    gasEstimateMode = 'auto',
 }: UseAALotteryProps) {
     const [status, setStatus] = useState('Log in with Web3Auth to create or load your AA account.');
     const [isLoading, setIsLoading] = useState(false);
@@ -42,7 +43,9 @@ export function useAALottery({
     const [selectedJoinEntryFee, setSelectedJoinEntryFee] = useState<bigint>(BigInt(0));
     const [selectedJoinEntryToken, setSelectedJoinEntryToken] = useState('');
 
-    const lottoReads = useAALottoInstances(lottoFactoryAddress, { enabled: mode === 'join' });
+    const lottoReads = useAALottoInstances(lottoFactoryAddress, {
+        enabled: Boolean(lottoFactoryAddress),
+    });
     const tokenReads = useAATokenReads({
         mode,
         accountAddress: account.accountAddress,
@@ -88,7 +91,31 @@ export function useAALottery({
         ]
     );
 
-    const gas = useAAUserOpGas(mode, selectedJoinAction);
+    const userOpGas = useAAUserOpGas({
+        mode,
+        selectedJoinAction,
+        sender: account.accountAddress,
+        ownerAddress: account.ownerAddress,
+        web3Provider: session.web3Provider,
+        nonce: account.accountNonce,
+        initCode,
+        callData,
+        gasEstimateMode,
+        joinTargetAddress,
+        selectedJoinEntryFee,
+        selectedJoinEntryToken,
+    });
+    const {
+        gas,
+        gasEstimateReady,
+        isEstimating: isEstimatingGas,
+        estimateError: gasEstimateError,
+        estimateForAction,
+        isGasReadyForAction,
+        getGasForAction,
+        getEstimateErrorForAction,
+        isEstimatingAction,
+    } = userOpGas;
     const draft = useAAUserOpDraft({
         accountAddress: account.accountAddress,
         accountNonce: account.accountNonce,
@@ -99,6 +126,8 @@ export function useAALottery({
 
     const signSend = useAAUserOpSignSend({
         workflow,
+        gasEstimateReady,
+        isGasEstimateReadyForAction: gasEstimateMode === 'manual' ? isGasReadyForAction : undefined,
         mode,
         sessionToken: session.sessionToken,
         web3Provider: session.web3Provider,
@@ -118,6 +147,7 @@ export function useAALottery({
         lottoInstances: lottoReads.lottoInstances,
         fetchLetBalance: tokenReads.fetchLetBalance,
         fetchJoinAllowance: tokenReads.fetchJoinAllowance,
+        fetchLottoInstances: lottoReads.fetchLottoInstances,
     });
 
     useEffect(() => {
@@ -138,6 +168,24 @@ export function useAALottery({
         setSelectedJoinEntryFee(entryFeeWei ?? BigInt(0));
         setSelectedJoinEntryToken(entryToken ?? '');
     }, []);
+
+    const handleEstimateJoinAction = useCallback(
+        async (action: AAJoinAction) => {
+            if (gasEstimateMode !== 'manual') {
+                return;
+            }
+            setSelectedJoinAction(action);
+            setStatus(`Estimating gas for ${action}...`);
+            try {
+                await estimateForAction(action);
+                setStatus(`Gas estimate ready for ${action}. Sign, then send.`);
+            } catch (error) {
+                const message = error instanceof Error ? error.message : 'Failed to estimate UserOp gas.';
+                setStatus(`Error: ${message}`);
+            }
+        },
+        [estimateForAction, gasEstimateMode, setSelectedJoinAction]
+    );
 
     const hydrateAAAccount = useCallback(
         async (owner: string) => {
@@ -241,13 +289,22 @@ export function useAALottery({
     }, [account.accountAddress, hasSufficientJoinAllowance, joinTargetSummary, mode, selectedJoinAction]);
 
     const getPreviewUserOpForJoinAction = useCallback(
-        (action: AAJoinAction) =>
-            draft.getPreviewUserOpForJoinAction(action, {
+        (action: AAJoinAction) => {
+            const preview = draft.getPreviewUserOpForJoinAction(action, {
                 joinTargetAddress,
                 selectedJoinEntryFee,
                 selectedJoinEntryToken,
-            }),
-        [draft, joinTargetAddress, selectedJoinEntryFee, selectedJoinEntryToken]
+            });
+            if (gasEstimateMode !== 'manual') {
+                return preview;
+            }
+            const actionGas = getGasForAction(action);
+            const hasGas =
+                actionGas.accountGasLimits !==
+                '0x0000000000000000000000000000000000000000000000000000000000000000';
+            return hasGas ? { ...preview, ...actionGas, signature: '0x' } : preview;
+        },
+        [draft, gasEstimateMode, getGasForAction, joinTargetAddress, selectedJoinEntryFee, selectedJoinEntryToken]
     );
 
     return {
@@ -260,6 +317,15 @@ export function useAALottery({
         salt: account.salt,
         status,
         isLoading,
+        isEstimatingGas,
+        gasEstimateReady,
+        gasEstimateError,
+        gasEstimateMode,
+        estimateForAction,
+        isGasReadyForAction,
+        getGasForAction,
+        getEstimateErrorForAction,
+        isEstimatingAction,
         signResultHash: signSend.signResultHash,
         bundlerResultHash: signSend.bundlerResultHash,
         letBalance: tokenReads.letBalance,
@@ -283,6 +349,7 @@ export function useAALottery({
         lottoInstancesError: lottoReads.lottoInstancesError,
         fetchLottoInstances: lottoReads.fetchLottoInstances,
         handleSelectJoinTarget,
+        handleEstimateJoinAction,
         handleUserOpFieldChange: draft.handleUserOpFieldChange,
         handleSignUserOp: signSend.handleSignUserOp,
         handleSignUserOpForJoinAction: signSend.handleSignUserOpForJoinAction,

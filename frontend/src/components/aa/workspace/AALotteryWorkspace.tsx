@@ -34,6 +34,9 @@ export function AALotteryWorkspace({ mode, title, subtitle, lottoFactoryAddress,
         accountAddress,
         status,
         isLoading,
+        isEstimatingGas,
+        gasEstimateReady,
+        gasEstimateError,
         accountDeployed,
         signResultHash,
         bundlerResultHash,
@@ -75,6 +78,11 @@ export function AALotteryWorkspace({ mode, title, subtitle, lottoFactoryAddress,
     const joinLetBlocksSign =
         insufficientLetForJoin &&
         (selectedJoinAction === 'approveEntryFee' || selectedJoinAction === 'joinLotto');
+
+    const gasBlocksSignSend =
+        Boolean(sessionToken) &&
+        AAAccountHydrated &&
+        (!gasEstimateReady || isEstimatingGas || Boolean(gasEstimateError));
 
     return (
         <section
@@ -143,6 +151,41 @@ export function AALotteryWorkspace({ mode, title, subtitle, lottoFactoryAddress,
                 </div>
             ) : null}
 
+            {gasEstimateError ? (
+                <div
+                    style={{
+                        marginTop: 14,
+                        padding: '12px 14px',
+                        borderRadius: 10,
+                        border: '1px solid #924747',
+                        background: 'rgba(127, 39, 39, 0.26)',
+                        color: '#ffd3cb',
+                        lineHeight: 1.55,
+                    }}
+                >
+                    Bundler gas estimation failed: {gasEstimateError}. Sign and Send are disabled until estimation
+                    succeeds (check bundler URL, paymaster, and Web3Auth session).
+                </div>
+            ) : null}
+
+            {gasBlocksSignSend && !gasEstimateError && AAAccountHydrated && sessionToken ? (
+                <div
+                    style={{
+                        marginTop: 14,
+                        padding: '12px 14px',
+                        borderRadius: 10,
+                        border: '1px solid #5d6f45',
+                        background: 'rgba(60, 80, 40, 0.22)',
+                        color: '#d8e8c8',
+                        lineHeight: 1.55,
+                    }}
+                >
+                    {isEstimatingGas
+                        ? 'Estimating UserOp gas from the bundler…'
+                        : 'Waiting for bundler gas estimate before Sign / Send.'}
+                </div>
+            ) : null}
+
             {mode === 'join' ? (
                 <JoinInstanceListSection
                     lottoInstances={lottoInstances}
@@ -194,7 +237,15 @@ export function AALotteryWorkspace({ mode, title, subtitle, lottoFactoryAddress,
                 onSign={handleSignUserOp}
                 onSend={handleSendUserOp}
                 isLoading={isLoading}
-                signDisabled={mustRefreshAAAccount || joinLetBlocksSign || !joinSignStateOk}
+                signDisabled={mustRefreshAAAccount || joinLetBlocksSign || !joinSignStateOk || gasBlocksSignSend}
+                sendDisabled={
+                    mustRefreshAAAccount ||
+                    joinLetBlocksSign ||
+                    !joinSignStateOk ||
+                    gasBlocksSignSend ||
+                    !userOp.signature ||
+                    userOp.signature === '0x'
+                }
             />
         </section>
     );

@@ -63,11 +63,24 @@ Body: `userOp` (packed fields; `signature` ignored, treated as `0x`).
 
 Returns `{ ok: true, userOpHash }` using `AA_RPC_URL` + `AA_ENTRYPOINT_ADDRESS` — same as send-route verification. The browser should use this for signing so the hash matches the server.
 
-### 4) `GET /api/aa/userop/nonce?sender=0x…`
+### 4) `POST /api/aa/userop/estimate`
+
+Body:
+
+- `mode` — `create` | `join` | `faucet`
+- `sender`, `nonce`, `initCode`, `callData`
+- `selectedJoinAction` (optional, join flows)
+- `paymasterAddress` (optional; defaults to `AA_PAYMASTER_ADDRESS` / `NEXT_PUBLIC_PAYMASTER_ADDRESS`)
+
+Returns `{ ok: true, gas }` with packed fields: `accountGasLimits`, `preVerificationGas`, `gasFees`, `paymasterAndData`.
+
+Uses `eth_estimateUserOperationGas` on `AA_BUNDLER_URL` (Alto locally, Alchemy on testnet) via viem/account-abstraction. Optional `AA_GAS_BUFFER_BPS` (default `500` = 5%).
+
+### 5) `GET /api/aa/userop/nonce?sender=0x…`
 
 Returns the EntryPoint nonce for the AA `sender`.
 
-### 5) `GET /api/aa/userop/receipt?userOpHash=0x…`
+### 6) `GET /api/aa/userop/receipt?userOpHash=0x…`
 
 Bundler trace / receipt lookup (no auth; suitable for local dev).
 

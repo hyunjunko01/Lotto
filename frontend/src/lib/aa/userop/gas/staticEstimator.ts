@@ -25,7 +25,7 @@ export function estimateStaticUserOpGas(params: UserOpGasEstimatorParams): UserO
         paymasterAddress &&
         isAddress(paymasterAddress)
     ) {
-        paymasterAndData = encodePaymasterAndData(paymasterAddress, BigInt(120000), BigInt(40000));
+        paymasterAndData = encodePaymasterAndData(paymasterAddress, BigInt(50_000), BigInt(20_000));
     }
 
     return {
@@ -37,5 +37,5 @@ export function estimateStaticUserOpGas(params: UserOpGasEstimatorParams): UserO
 }
 
 export const staticUserOpGasEstimator: UserOpGasEstimator = {
-    estimate: estimateStaticUserOpGas,
+    estimate: async (params) => estimateStaticUserOpGas(params),
 };

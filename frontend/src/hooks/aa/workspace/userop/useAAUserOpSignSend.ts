@@ -21,11 +21,18 @@ import type {
     AAWorkflowStatus,
     UserOpFields,
 } from '@/lib/aa/types';
-import { accountGasLimitsForJoinAction } from '@/lib/aa/userop/packing';
+import { fetchUserOpGasEstimate } from '@/lib/aa/userop/gas/fetchUserOpGasEstimate';
+import { createEstimateRequestGas } from '@/lib/aa/userop/gas/hashAnchorGas';
+import { signUserOpHashForEstimate } from '@/lib/aa/userop/gas/signEstimateUserOp';
+import type { UserOpGasEstimate } from '@/lib/aa/userop/gas/types';
+import { waitForUserOpReceipt } from '@/lib/aa/userop/waitForUserOpReceipt';
 import { targetChain } from '@/lib/targetNetwork';
 
 type UseAAUserOpSignSendParams = {
     workflow: AAWorkflowStatus;
+    gasEstimateReady: boolean;
+    /** When set (join manual mode), Sign checks readiness per action instead of global gasEstimateReady. */
+    isGasEstimateReadyForAction?: (action: AAJoinAction) => boolean;
     mode: AALotteryMode;
     sessionToken: string;
     web3Provider: IProvider | null;
@@ -45,10 +52,13 @@ type UseAAUserOpSignSendParams = {
     lottoInstances: AALottoSummary[];
     fetchLetBalance: () => Promise<void>;
     fetchJoinAllowance: () => Promise<void>;
+    fetchLottoInstances?: () => Promise<void>;
 };
 
 export function useAAUserOpSignSend({
     workflow,
+    gasEstimateReady,
+    isGasEstimateReadyForAction,
     mode,
     sessionToken,
     web3Provider,
@@ -68,6 +78,7 @@ export function useAAUserOpSignSend({
     lottoInstances,
     fetchLetBalance,
     fetchJoinAllowance,
+    fetchLottoInstances,
 }: UseAAUserOpSignSendParams) {
     const { setStatus, setIsLoading } = workflow;
     const [signResultHash, setSignResultHash] = useState('');
@@ -78,6 +89,54 @@ export function useAAUserOpSignSend({
             setSignResultHash('');
         }
     }, [userOp.signature]);
+
+    const refreshGasFields = useCallback(
+        async (draft: UserOpFields, action: AAJoinAction): Promise<UserOpGasEstimate> => {
+            if (!web3Provider || !ownerAddress || !isAddress(ownerAddress)) {
+                throw new Error('Connect Web3Auth and wait for bundler gas estimation before signing.');
+            }
+
+            if (!gasEstimateReady) {
+                throw new Error('Bundler gas estimate is not ready. Fix estimation errors, then try again.');
+            }
+
+            try {
+                const estimateRequestGas = createEstimateRequestGas(
+                    mode,
+                    process.env.NEXT_PUBLIC_PAYMASTER_ADDRESS,
+                    action
+                );
+                const signature = await signUserOpHashForEstimate(
+                    web3Provider,
+                    ownerAddress as `0x${string}`,
+                    {
+                        sender: draft.sender,
+                        nonce: draft.nonce,
+                        initCode: draft.initCode as `0x${string}`,
+                        callData: draft.callData,
+                        gas: estimateRequestGas,
+                    }
+                );
+
+                return await fetchUserOpGasEstimate({
+                    mode,
+                    selectedJoinAction: action,
+                    paymasterAddress: process.env.NEXT_PUBLIC_PAYMASTER_ADDRESS,
+                    sender: draft.sender,
+                    nonce: draft.nonce,
+                    initCode: draft.initCode as `0x${string}`,
+                    callData: draft.callData,
+                    signature,
+                    hashAnchorGas: estimateRequestGas,
+                });
+            } catch (error) {
+                const message =
+                    error instanceof Error ? error.message : 'Failed to re-estimate UserOp gas before signing.';
+                throw new Error(message);
+            }
+        },
+        [gasEstimateReady, mode, ownerAddress, web3Provider]
+    );
 
     const signUserOperationLocally = useCallback(
         async (nextUserOp: UserOpFields): Promise<{ signedUserOp: UserOpFields; userOpHash: string }> => {
@@ -191,6 +250,11 @@ export function useAAUserOpSignSend({
             return;
         }
 
+        if (!gasEstimateReady) {
+            setStatus('Bundler gas estimate is required before signing. Wait for estimation or fix errors above.');
+            return;
+        }
+
         if (mode === 'join' && !validateJoinSign(selectedJoinAction)) {
             return;
         }
@@ -200,10 +264,14 @@ export function useAAUserOpSignSend({
             setStatus('Requesting UserOperation signature...');
             setBundlerResultHash('');
             const latestNonce = await fetchAccountNonce(userOp.sender);
+            const gas = await refreshGasFields(
+                { ...userOp, nonce: latestNonce.toString() },
+                selectedJoinAction
+            );
             const userOpToSign = {
                 ...userOp,
                 nonce: latestNonce.toString(),
-                ...(mode === 'join' ? { accountGasLimits: accountGasLimitsForJoinAction(selectedJoinAction) } : {}),
+                ...gas,
             };
             setUserOp(userOpToSign);
 
@@ -219,7 +287,9 @@ export function useAAUserOpSignSend({
         }
     }, [
         fetchAccountNonce,
+        gasEstimateReady,
         mode,
+        refreshGasFields,
         selectedJoinAction,
         sessionToken,
         setIsLoading,
@@ -238,6 +308,23 @@ export function useAAUserOpSignSend({
 
         if (!userOp.signature || userOp.signature === '0x') {
             setStatus('Please sign the UserOperation first.');
+            return;
+        }
+
+        const sendGasReady = isGasEstimateReadyForAction
+            ? isGasEstimateReadyForAction(selectedJoinAction)
+            : gasEstimateReady;
+        if (!sendGasReady) {
+            setStatus(
+                isGasEstimateReadyForAction
+                    ? 'Estimate gas for this action before sending.'
+                    : 'Bundler gas estimate is required before sending. Re-sign after estimation succeeds.'
+            );
+            return;
+        }
+
+        if (userOp.accountGasLimits === '0x0000000000000000000000000000000000000000000000000000000000000000') {
+            setStatus('UserOp gas limits are missing. Wait for bundler gas estimation, then sign again.');
             return;
         }
 
@@ -274,8 +361,40 @@ export function useAAUserOpSignSend({
             }
 
             setBundlerResultHash(json.userOpHash);
-            setAccountNonce((prev) => prev + BigInt(1));
-            setStatus('UserOperation sent successfully.');
+            setStatus('Bundler accepted the UserOperation. Waiting for on-chain inclusion...');
+
+            const receipt = await waitForUserOpReceipt(json.userOpHash);
+
+            if (receipt.status === 'failed') {
+                throw new Error(
+                    receipt.reason
+                        ? `UserOperation reverted on-chain: ${receipt.reason}`
+                        : 'UserOperation failed on-chain.'
+                );
+            }
+
+            if (receipt.status === 'rpc-error') {
+                throw new Error(receipt.reason ?? 'Failed to confirm UserOperation on-chain.');
+            }
+
+            if (receipt.status === 'pending') {
+                setStatus(
+                    `Bundler accepted (userOpHash ${json.userOpHash.slice(0, 10)}…) but it is still pending. ` +
+                        'Nonce and factory state update only after inclusion. Check again in a minute or on the block explorer.'
+                );
+                return;
+            }
+
+            await fetchAccountNonce(userOp.sender);
+
+            if (mode === 'create' && fetchLottoInstances) {
+                await fetchLottoInstances();
+            }
+
+            const txHint = receipt.transactionHash
+                ? ` Tx: ${receipt.transactionHash.slice(0, 10)}…`
+                : '';
+            setStatus(`UserOperation included on-chain.${txHint}`);
             await fetchLetBalance();
             if (mode === 'join') {
                 await fetchJoinAllowance();
@@ -290,6 +409,9 @@ export function useAAUserOpSignSend({
         fetchAccountNonce,
         fetchJoinAllowance,
         fetchLetBalance,
+        fetchLottoInstances,
+        gasEstimateReady,
+        isGasEstimateReadyForAction,
         mode,
         sessionToken,
         setAccountNonce,
@@ -312,7 +434,6 @@ export function useAAUserOpSignSend({
                         selectedJoinEntryToken,
                     }) || '0x',
                 signature: '0x',
-                accountGasLimits: accountGasLimitsForJoinAction(action),
             };
             setUserOp(preparedUserOp);
 
@@ -326,6 +447,16 @@ export function useAAUserOpSignSend({
                 return;
             }
 
+            const gasReady = isGasEstimateReadyForAction
+                ? isGasEstimateReadyForAction(action)
+                : gasEstimateReady;
+            if (!gasReady) {
+                setStatus(
+                    'Estimate gas for this action first (Estimate Gas), then sign. Fix any estimation errors shown on the card.'
+                );
+                return;
+            }
+
             if (!validateJoinSign(action)) {
                 return;
             }
@@ -335,9 +466,14 @@ export function useAAUserOpSignSend({
                 setStatus('Requesting UserOperation signature...');
                 setBundlerResultHash('');
                 const latestNonce = await fetchAccountNonce(preparedUserOp.sender);
+                const gas = await refreshGasFields(
+                    { ...preparedUserOp, nonce: latestNonce.toString() },
+                    action
+                );
                 const userOpToSign = {
                     ...preparedUserOp,
                     nonce: latestNonce.toString(),
+                    ...gas,
                 };
                 setUserOp(userOpToSign);
                 const signed = await signUserOperationLocally(userOpToSign);
@@ -353,7 +489,10 @@ export function useAAUserOpSignSend({
         },
         [
             fetchAccountNonce,
+            gasEstimateReady,
+            isGasEstimateReadyForAction,
             joinTargetAddress,
+            refreshGasFields,
             selectedJoinEntryFee,
             selectedJoinEntryToken,
             sessionToken,

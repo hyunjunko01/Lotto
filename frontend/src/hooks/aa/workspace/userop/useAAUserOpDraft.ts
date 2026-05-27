@@ -5,8 +5,6 @@ import { buildJoinActionCallData } from '@/lib/aa/call-data';
 import { EMPTY_USER_OP } from '@/lib/aa/constants';
 import type { AAJoinAction, UserOpFields } from '@/lib/aa/types';
 import type { UserOpGasEstimate } from '@/lib/aa/userop/gas/types';
-import { accountGasLimitsForJoinAction } from '@/lib/aa/userop/packing';
-
 type UseAAUserOpDraftParams = {
     accountAddress: string;
     accountNonce: bigint;
@@ -75,7 +73,6 @@ export function useAAUserOpDraft({ accountAddress, accountNonce, initCode, callD
                     ...joinParams,
                 }) || '0x',
             signature: '0x',
-            accountGasLimits: accountGasLimitsForJoinAction(action),
         }),
         [userOp]
     );

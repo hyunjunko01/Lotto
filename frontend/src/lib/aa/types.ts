@@ -1,5 +1,8 @@
 export type AALotteryMode = 'create' | 'join' | 'faucet';
 
+/** `auto`: estimate on draft changes. `manual`: user clicks Estimate per join action. */
+export type AAGasEstimateMode = 'auto' | 'manual';
+
 export type AAJoinAction =
     | 'approveEntryFee'
     | 'joinLotto'
@@ -51,6 +54,7 @@ export interface UseAALotteryProps {
     accountFactoryAddress: string;
     entryTokenAddress?: string;
     initialJoinTargetAddress?: string;
+    gasEstimateMode?: AAGasEstimateMode;
 }
 
 export type UserOpFields = {

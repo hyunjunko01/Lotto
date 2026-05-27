@@ -6,10 +6,19 @@ interface ActionButtonsSectionProps {
     isLoading: boolean;
     /** When true, Sign is disabled (e.g. AA account not loaded from server yet). */
     signDisabled?: boolean;
+    /** When true, Send is disabled (e.g. gas estimate missing or not signed). */
+    sendDisabled?: boolean;
 }
 
-export function ActionButtonsSection({ onSign, onSend, isLoading, signDisabled = false }: ActionButtonsSectionProps) {
+export function ActionButtonsSection({
+    onSign,
+    onSend,
+    isLoading,
+    signDisabled = false,
+    sendDisabled = false,
+}: ActionButtonsSectionProps) {
     const signOff = isLoading || signDisabled;
+    const sendOff = isLoading || sendDisabled;
     return (
         <div style={{ marginTop: 16, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <button
@@ -33,7 +42,7 @@ export function ActionButtonsSection({ onSign, onSend, isLoading, signDisabled =
             </button>
             <button
                 onClick={onSend}
-                disabled={isLoading}
+                disabled={sendOff}
                 style={{
                     flex: 1,
                     minWidth: 120,
@@ -42,8 +51,8 @@ export function ActionButtonsSection({ onSign, onSend, isLoading, signDisabled =
                     border: '1px solid #5d7f80',
                     background: '#13242a',
                     color: '#d9eef1',
-                    cursor: isLoading ? 'not-allowed' : 'pointer',
-                    opacity: isLoading ? 0.6 : 1,
+                    cursor: sendOff ? 'not-allowed' : 'pointer',
+                    opacity: sendOff ? 0.6 : 1,
                     fontWeight: 500,
                     fontSize: '1rem',
                 }}

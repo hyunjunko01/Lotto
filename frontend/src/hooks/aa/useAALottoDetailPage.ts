@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { Address, isAddress } from 'viem';
 import { useAALottery } from '@/hooks/aa/workspace/useAALottery';
+import { getNextJoinAction } from '@/lib/aa/join/getNextJoinAction';
 import type { AAJoinAction } from '@/lib/aa/types';
 import { lottoStateToLabel, LottoState } from '@/hooks/shared/lib/lottoState';
 
@@ -38,6 +39,7 @@ export function useAALottoDetailPage() {
         lottoFactoryAddress: (LOTTO_FACTORY_ADDRESS as Address | undefined) ?? '0x0000000000000000000000000000000000000000',
         accountFactoryAddress: (ACCOUNT_FACTORY_ADDRESS as Address | undefined) ?? '0x0000000000000000000000000000000000000000',
         initialJoinTargetAddress: lottoAddress ?? '',
+        gasEstimateMode: 'manual',
     });
 
     const mustRefreshAAAccount = Boolean(aa.sessionToken) && !aa.AAAccountHydrated && !aa.isLoading;
@@ -71,6 +73,26 @@ export function useAALottoDetailPage() {
     const canWithdrawPrize =
         statusNumber === LottoState.CLOSED && !selectedSummary?.isPrizeWithdrawn && isAAAccountWinner;
     const canClaimRefund = statusNumber === LottoState.REFUNDING;
+
+    const nextJoinAction = useMemo(
+        () =>
+            getNextJoinAction({
+                canApproveOrJoin,
+                hasSufficientJoinAllowance: aa.hasSufficientJoinAllowance,
+                canRequestWinner,
+                canTriggerRefundMode,
+                canWithdrawPrize,
+                canClaimRefund,
+            }),
+        [
+            aa.hasSufficientJoinAllowance,
+            canApproveOrJoin,
+            canClaimRefund,
+            canRequestWinner,
+            canTriggerRefundMode,
+            canWithdrawPrize,
+        ]
+    );
 
     useEffect(() => {
         if (!lottoAddress || !selectedSummary) return;
@@ -107,6 +129,7 @@ export function useAALottoDetailPage() {
         canClaimRefund,
         isAAAccountWinner,
         hasWinner,
+        nextJoinAction,
         ...aa,
     };
 }

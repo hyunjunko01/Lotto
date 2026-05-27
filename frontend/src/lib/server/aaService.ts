@@ -7,6 +7,7 @@ import {
     parseAbi,
 } from 'viem';
 import accountFactoryAbi from '@/contracts/AccountFactory.json';
+import { toEntryPointV07BundlerRpcUserOp } from '@/lib/server/aa/userOpRpc';
 import { targetChain } from '@/lib/targetNetwork';
 
 type PackedUserOperation = {
@@ -77,10 +78,6 @@ function getBundlerUrl(): string {
     return process.env.AA_BUNDLER_URL ?? 'http://127.0.0.1:4337/rpc';
 }
 
-function toRpcHex(value: bigint): `0x${string}` {
-    return `0x${value.toString(16)}`;
-}
-
 function unpackAccountGasLimits(accountGasLimits: `0x${string}`): {
     verificationGasLimit: bigint;
     callGasLimit: bigint;
@@ -105,77 +102,6 @@ function unpackGasFees(gasFees: `0x${string}`): {
         // EntryPoint v0.7 packing order: high128=maxPriorityFeePerGas, low128=maxFeePerGas
         maxFeePerGas: packed & low128Mask,
         maxPriorityFeePerGas: packed >> BigInt(128),
-    };
-}
-
-function splitInitCode(initCode: `0x${string}`): { factory?: `0x${string}`; factoryData?: `0x${string}` } {
-    if (initCode === '0x') {
-        return {};
-    }
-
-    if (initCode.length < 42) {
-        throw new Error('Invalid initCode: expected at least factory address bytes.');
-    }
-
-    const factory = `0x${initCode.slice(2, 42)}` as `0x${string}`;
-    const factoryDataBody = initCode.slice(42);
-    const factoryData = (`0x${factoryDataBody}` as `0x${string}`) || '0x';
-    return { factory, factoryData };
-}
-
-function toV07RpcUserOp(userOp: PackedUserOperation) {
-    const { verificationGasLimit, callGasLimit } = unpackAccountGasLimits(userOp.accountGasLimits);
-    const { maxFeePerGas, maxPriorityFeePerGas } = unpackGasFees(userOp.gasFees);
-    return {
-        sender: userOp.sender,
-        nonce: toRpcHex(userOp.nonce),
-        initCode: userOp.initCode,
-        callData: userOp.callData,
-        callGasLimit: toRpcHex(callGasLimit),
-        verificationGasLimit: toRpcHex(verificationGasLimit),
-        preVerificationGas: toRpcHex(userOp.preVerificationGas),
-        maxFeePerGas: toRpcHex(maxFeePerGas),
-        maxPriorityFeePerGas: toRpcHex(maxPriorityFeePerGas),
-        paymasterAndData: userOp.paymasterAndData,
-        signature: userOp.signature,
-    };
-}
-
-function splitPaymasterAndData(paymasterAndData: `0x${string}`): {
-    paymaster?: `0x${string}`;
-    paymasterVerificationGasLimit?: `0x${string}`;
-    paymasterPostOpGasLimit?: `0x${string}`;
-    paymasterData?: `0x${string}`;
-} {
-    if (paymasterAndData === '0x') {
-        return {};
-    }
-
-    if (paymasterAndData.length < 42) {
-        throw new Error('Invalid paymasterAndData: expected paymaster address prefix.');
-    }
-
-    const paymaster = `0x${paymasterAndData.slice(2, 42)}` as `0x${string}`;
-    const body = paymasterAndData.slice(42);
-
-    // v0.7 unpacked layout: paymaster(20) + verificationGas(16) + postOpGas(16) + paymasterData
-    if (body.length >= 64) {
-        const verificationPart = body.slice(0, 32);
-        const postOpPart = body.slice(32, 64);
-        const paymasterDataBody = body.slice(64);
-
-        return {
-            paymaster,
-            paymasterVerificationGasLimit: toRpcHex(BigInt(`0x${verificationPart || '0'}`)),
-            paymasterPostOpGasLimit: toRpcHex(BigInt(`0x${postOpPart || '0'}`)),
-            paymasterData: (`0x${paymasterDataBody}` as `0x${string}`) || '0x',
-        };
-    }
-
-    // fallback for legacy simple paymasterAndData layout: paymaster + opaque data
-    return {
-        paymaster,
-        paymasterData: (`0x${body}` as `0x${string}`) || '0x',
     };
 }
 
@@ -257,48 +183,28 @@ export async function buildCreateAAAccountInitCode(ownerAddress: `0x${string}`, 
 
 export async function sendAAUserOperationToBundler(userOp: PackedUserOperation): Promise<{ userOpHash: string }> {
     const entryPoint = getEntryPointAddress();
-    const v07RpcPayload = toV07RpcUserOp(userOp);
-    const { verificationGasLimit, callGasLimit } = unpackAccountGasLimits(userOp.accountGasLimits);
-    const { maxFeePerGas, maxPriorityFeePerGas } = unpackGasFees(userOp.gasFees);
-    const factoryParts = splitInitCode(userOp.initCode);
-    const paymasterParts = splitPaymasterAndData(userOp.paymasterAndData);
-    const splitPayload = {
-        sender: userOp.sender,
-        nonce: toRpcHex(userOp.nonce),
-        callData: userOp.callData,
-        preVerificationGas: toRpcHex(userOp.preVerificationGas),
-        verificationGasLimit: toRpcHex(verificationGasLimit),
-        callGasLimit: toRpcHex(callGasLimit),
-        maxFeePerGas: toRpcHex(maxFeePerGas),
-        maxPriorityFeePerGas: toRpcHex(maxPriorityFeePerGas),
-        ...factoryParts,
-        ...paymasterParts,
-        signature: userOp.signature,
-    };
+    const rpcUserOp = toEntryPointV07BundlerRpcUserOp(userOp);
 
-    // First try split field shape (widely accepted by Alto/Alchemy bundlers).
-    let json = await callBundlerRpc('eth_sendUserOperation', [splitPayload, entryPoint]);
+    const json = await callBundlerRpc('eth_sendUserOperation', [rpcUserOp, entryPoint]);
 
     if (!json.error && typeof json.result === 'string') {
         return { userOpHash: json.result };
     }
-    const splitMessage = json.error?.message ?? '';
 
-    // Fallback: some bundlers still accept canonical v0.7 initCode/paymasterAndData shape.
-    json = await callBundlerRpc('eth_sendUserOperation', [v07RpcPayload, entryPoint]);
+    const message = json.error?.message ?? 'Bundler eth_sendUserOperation failed.';
 
-    if (!json.error && typeof json.result === 'string') {
-        return { userOpHash: json.result };
-    }
-    const v07Message = json.error?.message ?? '';
-    const finalErrorMessage =
-        v07Message || splitMessage || 'Bundler eth_sendUserOperation failed (split + v0.7 fallback attempts).';
-
-    if (/preVerificationGas too low/i.test(finalErrorMessage)) {
-        throw new Error(`${finalErrorMessage} Re-sign UserOperation after increasing preVerificationGas.`);
+    if (/preVerificationGas too low/i.test(message)) {
+        throw new Error(`${message} Re-sign UserOperation after increasing preVerificationGas.`);
     }
 
-    throw new Error(finalErrorMessage);
+    if (/replacement underpriced/i.test(message)) {
+        throw new Error(
+            `${message} A UserOperation with this nonce is already pending in the bundler mempool with higher or equal fees. ` +
+                'Wait ~30s for it to confirm or drop, then Sign again (fresh gas fees) and Send once.'
+        );
+    }
+
+    throw new Error(message);
 }
 
 /** Same hash the account uses for validation (`signature` must be empty for hashing). */

@@ -1,4 +1,13 @@
-import type { UserOpFields } from '@/lib/aa/types';
+import type { AAJoinAction, UserOpFields } from '@/lib/aa/types';
+
+export const AA_JOIN_ACTIONS = [
+    'approveEntryFee',
+    'joinLotto',
+    'requestWinner',
+    'withdrawPrize',
+    'triggerRefundMode',
+    'claimRefund',
+] as const satisfies readonly AAJoinAction[];
 
 export const AA_SESSION_STORAGE_KEY = 'aaSessionToken';
 
