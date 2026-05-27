@@ -96,10 +96,6 @@ export function useAAUserOpSignSend({
                 throw new Error('Connect Web3Auth and wait for bundler gas estimation before signing.');
             }
 
-            if (!gasEstimateReady) {
-                throw new Error('Bundler gas estimate is not ready. Fix estimation errors, then try again.');
-            }
-
             try {
                 const estimateRequestGas = createEstimateRequestGas(
                     mode,
@@ -198,7 +194,8 @@ export function useAAUserOpSignSend({
     );
 
     const validateJoinSign = useCallback(
-        (action: AAJoinAction): boolean => {
+        (action: AAJoinAction, options?: { skipJoinAllowanceCheck?: boolean }): boolean => {
+            const skipJoinAllowanceCheck = options?.skipJoinAllowanceCheck ?? false;
             const needsLet = action === 'approveEntryFee' || action === 'joinLotto';
             if (
                 needsLet &&
@@ -219,6 +216,7 @@ export function useAAUserOpSignSend({
 
             if (
                 action === 'joinLotto' &&
+                !skipJoinAllowanceCheck &&
                 selectedJoinEntryFee > BigInt(0) &&
                 (joinEntryAllowance === null || joinEntryAllowance < selectedJoinEntryFee)
             ) {
@@ -511,11 +509,151 @@ export function useAAUserOpSignSend({
         setBundlerResultHash('');
     }, []);
 
+    const handleExecuteUserOp = useCallback(
+        async (
+            actionOverride?: AAJoinAction,
+            options?: {
+                skipJoinAllowanceCheck?: boolean;
+            }
+        ): Promise<boolean> => {
+        const action = actionOverride ?? selectedJoinAction;
+        if (!sessionToken) {
+            setStatus('Please log in with Web3Auth first.');
+            return false;
+        }
+        if (!userOp.sender) {
+            setStatus('The sender address is required.');
+            return false;
+        }
+        if (mode === 'join' && !validateJoinSign(action, options)) {
+            return false;
+        }
+
+        try {
+            setIsLoading(true);
+            setBundlerResultHash('');
+            setStatus('Preparing UserOperation...');
+
+            if (mode === 'join') {
+                setSelectedJoinAction(action);
+            }
+            const latestNonce = await fetchAccountNonce(userOp.sender);
+            const callDataForAction =
+                mode === 'join'
+                    ? buildJoinActionCallData({
+                          action,
+                          joinTargetAddress,
+                          selectedJoinEntryFee,
+                          selectedJoinEntryToken,
+                      }) || '0x'
+                    : userOp.callData;
+            const gas = await refreshGasFields(
+                { ...userOp, nonce: latestNonce.toString(), callData: callDataForAction },
+                action
+            );
+            const userOpToSign = {
+                ...userOp,
+                nonce: latestNonce.toString(),
+                callData: callDataForAction,
+                ...gas,
+                signature: '0x',
+            };
+            setUserOp(userOpToSign);
+
+            setStatus('Requesting UserOperation signature...');
+            const signed = await signUserOperationLocally(userOpToSign);
+            setUserOp(signed.signedUserOp);
+            setSignResultHash(signed.userOpHash);
+
+            setStatus('Sending UserOperation to the bundler...');
+            const response = await fetch('/api/aa/userop/send', {
+                method: 'POST',
+                headers: { 'content-type': 'application/json' },
+                body: JSON.stringify({
+                    userOp: signed.signedUserOp,
+                    ...(signed.userOpHash && /^0x[0-9a-fA-F]{64}$/i.test(signed.userOpHash)
+                        ? { clientUserOpHash: signed.userOpHash }
+                        : {}),
+                }),
+            });
+
+            const json = (await response.json()) as AASendUserOpResponse;
+            if (!response.ok || !json.ok || !json.userOpHash) {
+                const detail =
+                    json.serverUserOpHash && json.clientUserOpHash
+                        ? ` (client ${json.clientUserOpHash.slice(0, 12)}… vs server ${json.serverUserOpHash.slice(0, 12)}…)`
+                        : '';
+                throw new Error((json.error ?? 'Failed to send user operation.') + detail);
+            }
+
+            setBundlerResultHash(json.userOpHash);
+            setStatus('Bundler accepted the UserOperation. Waiting for on-chain inclusion...');
+
+            const receipt = await waitForUserOpReceipt(json.userOpHash);
+            if (receipt.status === 'failed') {
+                throw new Error(
+                    receipt.reason ? `UserOperation reverted on-chain: ${receipt.reason}` : 'UserOperation failed on-chain.'
+                );
+            }
+            if (receipt.status === 'rpc-error') {
+                throw new Error(receipt.reason ?? 'Failed to confirm UserOperation on-chain.');
+            }
+            if (receipt.status === 'pending') {
+                setStatus(
+                    `Bundler accepted (userOpHash ${json.userOpHash.slice(0, 10)}…) but it is still pending. ` +
+                        'Nonce and factory state update only after inclusion. Check again in a minute or on the block explorer.'
+                );
+                return false;
+            }
+
+            await fetchAccountNonce(signed.signedUserOp.sender);
+            if (fetchLottoInstances) {
+                await fetchLottoInstances();
+            }
+
+            const txHint = receipt.transactionHash ? ` Tx: ${receipt.transactionHash.slice(0, 10)}…` : '';
+            setStatus(`UserOperation included on-chain.${txHint}`);
+            await fetchLetBalance();
+            if (mode === 'join') {
+                await fetchJoinAllowance();
+            }
+            return true;
+        } catch (error) {
+            const message = error instanceof Error ? error.message : 'Failed to execute user operation.';
+            setStatus(`Error: ${message}`);
+            return false;
+        } finally {
+            setIsLoading(false);
+        }
+        },
+        [
+            fetchAccountNonce,
+            fetchJoinAllowance,
+            fetchLetBalance,
+            fetchLottoInstances,
+            joinTargetAddress,
+            mode,
+            refreshGasFields,
+            selectedJoinAction,
+            selectedJoinEntryFee,
+            selectedJoinEntryToken,
+            sessionToken,
+            setIsLoading,
+            setSelectedJoinAction,
+            setStatus,
+            setUserOp,
+            signUserOperationLocally,
+            userOp,
+            validateJoinSign,
+        ]
+    );
+
     return {
         signResultHash,
         bundlerResultHash,
         handleSignUserOp,
         handleSendUserOp,
+        handleExecuteUserOp,
         handleSignUserOpForJoinAction,
         resetSignSend,
     };

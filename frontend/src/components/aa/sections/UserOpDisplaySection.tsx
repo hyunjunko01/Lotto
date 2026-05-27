@@ -1,60 +1,75 @@
 'use client';
 
+import { useState } from 'react';
 import type { UserOpFields } from '@/lib/aa/types';
 
 interface UserOpDisplaySectionProps {
     userOp: UserOpFields;
 }
 
-const textareaStyle = {
-    padding: '9px 10px',
-    borderRadius: 8,
-    border: '1px solid #496871',
-    background: '#09141a',
-    color: '#cfeef0',
-    fontFamily: 'monospace',
-    fontSize: '0.8rem',
-};
-
-const inputStyle = {
-    padding: '9px 10px',
-    borderRadius: 8,
-    border: '1px solid #496871',
-    background: '#09141a',
-    color: '#cfeef0',
-    fontFamily: 'monospace',
-    fontSize: '0.85rem',
-};
-
 export function UserOpDisplaySection({ userOp }: UserOpDisplaySectionProps) {
+    const [isExpanded, setIsExpanded] = useState(false);
+
     return (
-        <div
-            style={{
-                marginTop: 16,
-                padding: 14,
-                borderRadius: 12,
-                border: '1px solid #32515a',
-                background: 'rgba(10, 35, 44, 0.6)',
-                display: 'grid',
-                gap: 10,
-            }}
-        >
-            <h3 style={{ margin: 0 }}>📋 UserOperation (Auto-Generated)</h3>
+        <div style={{ marginTop: 16 }}>
+            <button
+                type="button"
+                onClick={() => setIsExpanded((prev) => !prev)}
+                style={{
+                    width: '100%',
+                    padding: '9px 12px',
+                    borderRadius: 10,
+                    border: '1px solid #5d7980',
+                    background: '#13242a',
+                    color: '#d9eef1',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                }}
+            >
+                {isExpanded ? '▼ Hide Auto UserOp Values' : '▶ View Auto UserOp Values'}
+            </button>
 
-            <label style={{ display: 'grid', gap: 4 }}>
-                <span style={{ fontSize: '0.9rem', color: '#a8e6a1' }}>sender</span>
-                <input value={userOp.sender} readOnly placeholder="0x..." style={inputStyle} />
-            </label>
-
-            <label style={{ display: 'grid', gap: 4 }}>
-                <span style={{ fontSize: '0.9rem', color: '#a8e6a1' }}>initCode (account creation)</span>
-                <textarea value={userOp.initCode} readOnly rows={2} style={textareaStyle} />
-            </label>
-
-            <label style={{ display: 'grid', gap: 4 }}>
-                <span style={{ fontSize: '0.9rem', color: '#a8e6a1' }}>callData (lotto call)</span>
-                <textarea value={userOp.callData} readOnly rows={3} style={textareaStyle} />
-            </label>
+            {isExpanded ? (
+                <div
+                    style={{
+                        marginTop: 10,
+                        border: '1px solid #2d3f45',
+                        borderRadius: 10,
+                        padding: 10,
+                        background: 'rgba(7, 19, 24, 0.72)',
+                        display: 'grid',
+                        gap: 6,
+                        fontFamily: 'ui-monospace, Menlo, monospace',
+                        fontSize: '0.82rem',
+                        color: '#d4eaee',
+                    }}
+                >
+                    <p style={{ margin: 0, wordBreak: 'break-all' }}>
+                        <strong>sender:</strong> {userOp.sender || '-'}
+                    </p>
+                    <p style={{ margin: 0, wordBreak: 'break-all' }}>
+                        <strong>nonce:</strong> {userOp.nonce}
+                    </p>
+                    <p style={{ margin: 0, wordBreak: 'break-all' }}>
+                        <strong>initCode:</strong> {userOp.initCode}
+                    </p>
+                    <p style={{ margin: 0, wordBreak: 'break-all' }}>
+                        <strong>callData:</strong> {userOp.callData}
+                    </p>
+                    <p style={{ margin: 0, wordBreak: 'break-all' }}>
+                        <strong>accountGasLimits:</strong> {userOp.accountGasLimits}
+                    </p>
+                    <p style={{ margin: 0, wordBreak: 'break-all' }}>
+                        <strong>preVerificationGas:</strong> {userOp.preVerificationGas}
+                    </p>
+                    <p style={{ margin: 0, wordBreak: 'break-all' }}>
+                        <strong>gasFees:</strong> {userOp.gasFees}
+                    </p>
+                    <p style={{ margin: 0, wordBreak: 'break-all' }}>
+                        <strong>paymasterAndData:</strong> {userOp.paymasterAndData}
+                    </p>
+                </div>
+            ) : null}
         </div>
     );
 }

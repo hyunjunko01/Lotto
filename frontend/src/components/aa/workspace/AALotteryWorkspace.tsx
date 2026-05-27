@@ -6,8 +6,6 @@ import { useAALottery } from '@/hooks/aa/workspace/useAALottery';
 import { Web3AuthSection } from '@/components/aa/sections/Web3AuthSection';
 import { AccountStatusSection } from '@/components/aa/sections/AccountStatusSection';
 import { LottoParamsSection } from '@/components/aa/sections/LottoParamsSection';
-import { UserOpDisplaySection } from '@/components/aa/sections/UserOpDisplaySection';
-import { AdvancedSettingsSection } from '@/components/aa/sections/AdvancedSettingsSection';
 import { ActionButtonsSection } from '@/components/aa/sections/ActionButtonsSection';
 import { JoinInstanceListSection } from '@/components/aa/sections/JoinInstanceListSection';
 
@@ -33,7 +31,7 @@ export function AALotteryWorkspace({
     const clientId = process.env.NEXT_PUBLIC_WEB3AUTH_CLIENT_ID;
     const isReady = useMemo(() => Boolean(clientId), [clientId]);
 
-    const [showAdvanced, setShowAdvanced] = useState(false);
+    const [showUserOpSettings, setShowUserOpSettings] = useState(false);
 
     const {
         sessionToken,
@@ -66,10 +64,7 @@ export function AALotteryWorkspace({
         lottoInstancesError,
         fetchLottoInstances,
         handleSelectJoinTarget,
-        handleEstimateCurrentUserOp,
-        handleUserOpFieldChange,
-        handleSignUserOp,
-        handleSendUserOp,
+        handleExecuteUserOp,
         handleWeb3AuthLogin,
         handleRefresh,
         handleLogout,
@@ -93,12 +88,24 @@ export function AALotteryWorkspace({
         Boolean(sessionToken) &&
         AAAccountHydrated &&
         (!gasEstimateReady || isEstimatingGas || Boolean(gasEstimateError));
-    const showManualEstimateButton = gasEstimateMode === 'manual' && mode !== 'join';
-    const estimateDisabled =
+    const executeDisabled =
         mustRefreshAAAccount ||
         joinLetBlocksSign ||
         !joinSignStateOk ||
-        isEstimatingGas;
+        (mode !== 'faucet' && isEstimatingGas) ||
+        !sessionToken ||
+        !AAAccountHydrated;
+    const executeLabel =
+        mode === 'create'
+            ? 'Create Lottery'
+            : mode === 'join'
+              ? 'Execute Join Action'
+              : 'Request Faucet Tokens';
+    const actionCardTitle = mode === 'create' ? 'Create Lottery Action' : 'Token Faucet Action';
+    const actionCardDescription =
+        mode === 'create'
+            ? 'Execute this action to estimate gas, sign, and send a create-lottery UserOp with current inputs.'
+            : 'Execute this action to estimate gas, sign, and send a faucet UserOp from your AA account.';
 
     return (
         <section
@@ -184,7 +191,12 @@ export function AALotteryWorkspace({
                 </div>
             ) : null}
 
-            {gasBlocksSignSend && !gasEstimateError && AAAccountHydrated && sessionToken ? (
+            {mode !== 'faucet' &&
+            gasEstimateMode !== 'manual' &&
+            gasBlocksSignSend &&
+            !gasEstimateError &&
+            AAAccountHydrated &&
+            sessionToken ? (
                 <div
                     style={{
                         marginTop: 14,
@@ -198,9 +210,7 @@ export function AALotteryWorkspace({
                 >
                     {isEstimatingGas
                         ? 'Estimating UserOp gas from the bundler…'
-                        : showManualEstimateButton
-                          ? 'Click Estimate Gas before Sign / Send.'
-                          : 'Waiting for bundler gas estimate before Sign / Send.'}
+                        : 'Waiting for bundler gas estimate before executing UserOp.'}
                 </div>
             ) : null}
 
@@ -215,58 +225,98 @@ export function AALotteryWorkspace({
                 />
             ) : null}
 
-            <LottoParamsSection
-                mode={mode}
-                entryFeeEth={entryFeeEth}
-                setEntryFeeEth={setEntryFeeEth}
-                maxPlayers={maxPlayers}
-                setMaxPlayers={setMaxPlayers}
-                joinTargetAddress={joinTargetAddress}
-                setJoinTargetAddress={setJoinTargetAddress}
-                joinValueEth={joinValueEth}
-                setJoinValueEth={setJoinValueEth}
-            />
+            {mode === 'create' || mode === 'join' ? (
+                <LottoParamsSection
+                    mode={mode}
+                    entryFeeEth={entryFeeEth}
+                    setEntryFeeEth={setEntryFeeEth}
+                    maxPlayers={maxPlayers}
+                    setMaxPlayers={setMaxPlayers}
+                    joinTargetAddress={joinTargetAddress}
+                    setJoinTargetAddress={setJoinTargetAddress}
+                    joinValueEth={joinValueEth}
+                    setJoinValueEth={setJoinValueEth}
+                />
+            ) : null}
 
-            <UserOpDisplaySection userOp={userOp} />
-
-            <div style={{ marginTop: 16 }}>
+            <div
+                style={{
+                    marginTop: 16,
+                    border: '1px solid #76b4be',
+                    borderRadius: 12,
+                    padding: 14,
+                    background: 'rgba(15, 60, 70, 0.55)',
+                }}
+            >
+                <h3 style={{ margin: 0 }}>{actionCardTitle}</h3>
+                <p style={{ margin: '8px 0 0', color: '#c6dfe2', lineHeight: 1.5 }}>{actionCardDescription}</p>
+                <ActionButtonsSection
+                    onExecute={() => void handleExecuteUserOp()}
+                    isLoading={isLoading}
+                    executeDisabled={executeDisabled}
+                    label={executeLabel}
+                />
                 <button
-                    onClick={() => setShowAdvanced(!showAdvanced)}
+                    type="button"
+                    onClick={() => setShowUserOpSettings((prev) => !prev)}
                     style={{
+                        marginTop: 10,
                         width: '100%',
-                        padding: '12px',
+                        padding: '9px 12px',
                         borderRadius: 10,
                         border: '1px solid #5d7980',
-                        background: showAdvanced ? '#1a3a42' : '#13242a',
-                        color: showAdvanced ? '#ffd700' : '#d9eef1',
+                        background: '#13242a',
+                        color: '#d9eef1',
                         cursor: 'pointer',
-                        fontWeight: 500,
-                        fontSize: '1rem',
-                        transition: 'all 0.3s ease',
+                        textAlign: 'left',
                     }}
                 >
-                    {showAdvanced ? '▼ Hide Advanced Settings' : '▶ Show Advanced Settings'}
+                    {showUserOpSettings ? '▼ Hide Auto UserOp Values' : '▶ View Auto UserOp Values'}
                 </button>
+
+                {showUserOpSettings ? (
+                    <div
+                        style={{
+                            marginTop: 10,
+                            border: '1px solid #2d3f45',
+                            borderRadius: 10,
+                            padding: 10,
+                            background: 'rgba(7, 19, 24, 0.72)',
+                            display: 'grid',
+                            gap: 6,
+                            fontFamily: 'ui-monospace, Menlo, monospace',
+                            fontSize: '0.82rem',
+                            color: '#d4eaee',
+                        }}
+                    >
+                        <p style={{ margin: 0, wordBreak: 'break-all' }}>
+                            <strong>sender:</strong> {userOp.sender || '-'}
+                        </p>
+                        <p style={{ margin: 0, wordBreak: 'break-all' }}>
+                            <strong>nonce:</strong> {userOp.nonce}
+                        </p>
+                        <p style={{ margin: 0, wordBreak: 'break-all' }}>
+                            <strong>initCode:</strong> {userOp.initCode}
+                        </p>
+                        <p style={{ margin: 0, wordBreak: 'break-all' }}>
+                            <strong>callData:</strong> {userOp.callData}
+                        </p>
+                        <p style={{ margin: 0, wordBreak: 'break-all' }}>
+                            <strong>accountGasLimits:</strong> {userOp.accountGasLimits}
+                        </p>
+                        <p style={{ margin: 0, wordBreak: 'break-all' }}>
+                            <strong>preVerificationGas:</strong> {userOp.preVerificationGas}
+                        </p>
+                        <p style={{ margin: 0, wordBreak: 'break-all' }}>
+                            <strong>gasFees:</strong> {userOp.gasFees}
+                        </p>
+                        <p style={{ margin: 0, wordBreak: 'break-all' }}>
+                            <strong>paymasterAndData:</strong> {userOp.paymasterAndData}
+                        </p>
+                    </div>
+                ) : null}
+
             </div>
-
-            {showAdvanced && <AdvancedSettingsSection userOp={userOp} onFieldChange={handleUserOpFieldChange} />}
-
-            <ActionButtonsSection
-                onEstimate={showManualEstimateButton ? () => void handleEstimateCurrentUserOp() : undefined}
-                onSign={handleSignUserOp}
-                onSend={handleSendUserOp}
-                isLoading={isLoading}
-                estimateDisabled={estimateDisabled}
-                signDisabled={mustRefreshAAAccount || joinLetBlocksSign || !joinSignStateOk || gasBlocksSignSend}
-                sendDisabled={
-                    mustRefreshAAAccount ||
-                    joinLetBlocksSign ||
-                    !joinSignStateOk ||
-                    gasBlocksSignSend ||
-                    !userOp.signature ||
-                    userOp.signature === '0x'
-                }
-            />
         </section>
     );
 }

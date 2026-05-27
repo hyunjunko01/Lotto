@@ -371,6 +371,7 @@ export function useAALottery({
         handleSignUserOp: signSend.handleSignUserOp,
         handleSignUserOpForJoinAction: signSend.handleSignUserOpForJoinAction,
         handleSendUserOp: signSend.handleSendUserOp,
+        handleExecuteUserOp: signSend.handleExecuteUserOp,
         getPreviewUserOpForJoinAction,
         handleWeb3AuthLogin,
         handleRefresh,
