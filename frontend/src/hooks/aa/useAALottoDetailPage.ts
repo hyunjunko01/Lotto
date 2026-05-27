@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { Address, isAddress } from 'viem';
 import { useAALottery } from '@/hooks/aa/workspace/useAALottery';
+import { useAALottoSummary } from '@/hooks/aa/workspace/reads/useAALottoSummary';
 import { getNextJoinAction } from '@/lib/aa/join/getNextJoinAction';
 import type { AAJoinAction } from '@/lib/aa/types';
 import { lottoStateToLabel, LottoState } from '@/hooks/shared/lib/lottoState';
@@ -33,6 +34,7 @@ export function useAALottoDetailPage() {
 
     const [expandedAction, setExpandedAction] = useState<AAJoinAction | null>(null);
     const [currentTimestamp, setCurrentTimestamp] = useState(() => BigInt(Math.floor(Date.now() / 1000)));
+    const { summary: selectedSummary, fetchSummary } = useAALottoSummary(lottoAddress);
 
     const aa = useAALottery({
         mode: 'join',
@@ -40,14 +42,11 @@ export function useAALottoDetailPage() {
         accountFactoryAddress: (ACCOUNT_FACTORY_ADDRESS as Address | undefined) ?? '0x0000000000000000000000000000000000000000',
         initialJoinTargetAddress: lottoAddress ?? '',
         gasEstimateMode: 'manual',
+        loadJoinInstances: false,
+        joinSummaryOverride: selectedSummary,
     });
 
     const mustRefreshAAAccount = Boolean(aa.sessionToken) && !aa.AAAccountHydrated && !aa.isLoading;
-
-    const selectedSummary = useMemo(
-        () => aa.lottoInstances.find((item) => item.address.toLowerCase() === (lottoAddress ?? '').toLowerCase()),
-        [lottoAddress, aa.lottoInstances]
-    );
 
     const joinEntryFeeWei = selectedSummary?.entryFee;
     const insufficientLetKnown =
@@ -130,6 +129,7 @@ export function useAALottoDetailPage() {
         isAAAccountWinner,
         hasWinner,
         nextJoinAction,
+        fetchSummary,
         ...aa,
     };
 }

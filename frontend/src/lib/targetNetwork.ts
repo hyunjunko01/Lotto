@@ -22,8 +22,7 @@ export const targetChainId = parseTargetChainId();
 export const targetChain = SUPPORTED_TARGET_CHAINS.find((chain) => chain.id === targetChainId) ?? anvil;
 export const targetNetworkName = process.env.NEXT_PUBLIC_CHAIN_NAME || targetChain.name;
 export const targetNetworkLabel = `${targetNetworkName} (${targetChainId})`;
-export const targetRpcUrl =
-    process.env.NEXT_PUBLIC_RPC_URL || (targetChainId === anvil.id ? 'http://127.0.0.1:8545' : undefined);
+export const targetRpcUrl = process.env.NEXT_PUBLIC_RPC_URL;
 export const targetLogLookbackBlocks = (() => {
     const rawLookback = process.env.NEXT_PUBLIC_LOG_LOOKBACK_BLOCKS;
     if (rawLookback) {

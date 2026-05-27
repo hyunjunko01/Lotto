@@ -71,11 +71,19 @@ const ENTRY_POINT_ABI = parseAbi([
 const FACTORY_INTERFACE_ABI = accountFactoryAbi;
 
 function getRpcUrl(): string {
-    return process.env.AA_RPC_URL ?? 'http://127.0.0.1:8545';
+    const value = process.env.AA_RPC_URL;
+    if (!value) {
+        throw new Error('AA_RPC_URL is required.');
+    }
+    return value;
 }
 
 function getBundlerUrl(): string {
-    return process.env.AA_BUNDLER_URL ?? 'http://127.0.0.1:4337/rpc';
+    const value = process.env.AA_BUNDLER_URL;
+    if (!value) {
+        throw new Error('AA_BUNDLER_URL is required.');
+    }
+    return value;
 }
 
 function unpackAccountGasLimits(accountGasLimits: `0x${string}`): {

@@ -1,32 +1,84 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useSyncExternalStore } from 'react';
 import type { IProvider } from '@web3auth/base';
 import { AA_SESSION_STORAGE_KEY } from '@/lib/aa/constants';
 import { getWeb3Auth } from '@/lib/web3auth';
 
+type AASessionState = {
+    sessionToken: string;
+    web3Provider: IProvider | null;
+    email: string;
+};
+
+let sessionState: AASessionState = {
+    sessionToken: '',
+    web3Provider: null,
+    email: '',
+};
+
+const listeners = new Set<() => void>();
+let initialized = false;
+
+function emit() {
+    listeners.forEach((listener) => listener());
+}
+
+function setSessionState(next: Partial<AASessionState>) {
+    sessionState = { ...sessionState, ...next };
+    emit();
+}
+
+function subscribe(listener: () => void) {
+    listeners.add(listener);
+    return () => listeners.delete(listener);
+}
+
+function getSnapshot() {
+    return sessionState;
+}
+
+function initializeSession() {
+    if (initialized || typeof window === 'undefined') {
+        return;
+    }
+    initialized = true;
+    const stored = localStorage.getItem(AA_SESSION_STORAGE_KEY);
+    if (!stored) {
+        return;
+    }
+    setSessionState({ sessionToken: stored });
+    void getWeb3Auth()
+        .then((web3auth) => {
+            if (web3auth.provider) {
+                setSessionState({ web3Provider: web3auth.provider });
+            }
+        })
+        .catch(() => {});
+}
+
 export function useAASession() {
-    const [sessionToken, setSessionToken] = useState('');
-    const [web3Provider, setWeb3Provider] = useState<IProvider | null>(null);
-    const [email, setEmail] = useState('');
+    const state = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 
     useEffect(() => {
-        const stored = localStorage.getItem(AA_SESSION_STORAGE_KEY);
-        if (stored) {
-            setSessionToken(stored);
-            void getWeb3Auth()
-                .then((web3auth) => {
-                    if (web3auth.provider) {
-                        setWeb3Provider(web3auth.provider);
-                    }
-                })
-                .catch(() => {});
-        }
+        initializeSession();
     }, []);
 
     const persistSession = useCallback((token: string) => {
-        setSessionToken(token);
+        setSessionState({ sessionToken: token });
         localStorage.setItem(AA_SESSION_STORAGE_KEY, token);
+    }, []);
+
+    const setSessionToken = useCallback((token: string) => {
+        setSessionState({ sessionToken: token });
+    }, []);
+
+    const setWeb3Provider = useCallback((provider: IProvider | null) => {
+        setSessionState({ web3Provider: provider });
+    }, []);
+
+    const setEmail = useCallback((nextEmail: string) => {
+        setSessionState({ email: nextEmail });
     }, []);
 
     const clearSession = useCallback(() => {
@@ -34,17 +86,19 @@ export function useAASession() {
         void getWeb3Auth()
             .then((web3auth) => web3auth.logout())
             .catch(() => {});
-        setSessionToken('');
-        setWeb3Provider(null);
-        setEmail('');
+        setSessionState({
+            sessionToken: '',
+            web3Provider: null,
+            email: '',
+        });
     }, []);
 
     return {
-        sessionToken,
+        sessionToken: state.sessionToken,
         setSessionToken,
-        web3Provider,
+        web3Provider: state.web3Provider,
         setWeb3Provider,
-        email,
+        email: state.email,
         setEmail,
         persistSession,
         clearSession,

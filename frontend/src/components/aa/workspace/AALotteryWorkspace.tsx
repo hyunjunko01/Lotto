@@ -1,9 +1,8 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import type { AAGasEstimateMode, AALotteryMode } from '@/lib/aa/types';
 import { useAALottery } from '@/hooks/aa/workspace/useAALottery';
-import { Web3AuthSection } from '@/components/aa/sections/Web3AuthSection';
 import { AccountStatusSection } from '@/components/aa/sections/AccountStatusSection';
 import { LottoParamsSection } from '@/components/aa/sections/LottoParamsSection';
 import { ActionButtonsSection } from '@/components/aa/sections/ActionButtonsSection';
@@ -28,9 +27,6 @@ export function AALotteryWorkspace({
     accountFactoryAddress,
     entryTokenAddress,
 }: Props) {
-    const clientId = process.env.NEXT_PUBLIC_WEB3AUTH_CLIENT_ID;
-    const isReady = useMemo(() => Boolean(clientId), [clientId]);
-
     const [showUserOpSettings, setShowUserOpSettings] = useState(false);
 
     const {
@@ -65,9 +61,6 @@ export function AALotteryWorkspace({
         fetchLottoInstances,
         handleSelectJoinTarget,
         handleExecuteUserOp,
-        handleWeb3AuthLogin,
-        handleRefresh,
-        handleLogout,
     } = useAALottery({ mode, lottoFactoryAddress, accountFactoryAddress, entryTokenAddress, gasEstimateMode });
 
     const mustRefreshAAAccount =
@@ -119,14 +112,6 @@ export function AALotteryWorkspace({
         >
             <h2 style={{ margin: '0 0 10px' }}>{title}</h2>
             <p style={{ marginTop: 0, color: '#c6dfe2', lineHeight: 1.5 }}>{subtitle}</p>
-
-            <Web3AuthSection
-                onLogin={handleWeb3AuthLogin}
-                isReady={isReady}
-                isLoading={isLoading}
-                onRefresh={handleRefresh}
-                onLogout={handleLogout}
-            />
 
             <AccountStatusSection
                 status={status}

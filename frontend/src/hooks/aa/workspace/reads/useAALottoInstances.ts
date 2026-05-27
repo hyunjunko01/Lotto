@@ -32,8 +32,15 @@ export function useAALottoInstances(
         setIsLoadingLottoInstances(true);
         setLottoInstancesError('');
 
+        const rpcUrl = targetRpcUrl;
+        if (!rpcUrl) {
+            setLottoInstancesError('NEXT_PUBLIC_RPC_URL is required.');
+            setLottoInstances([]);
+            setIsLoadingLottoInstances(false);
+            return;
+        }
+
         try {
-            const rpcUrl = targetRpcUrl || 'http://127.0.0.1:8545';
             const summaries = await fetchLottoSummaries(rpcUrl, lottoFactoryAddress);
             setLottoInstances(summaries);
         } catch (error) {

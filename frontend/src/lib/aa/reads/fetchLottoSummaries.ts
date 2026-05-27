@@ -21,6 +21,105 @@ async function ethCall(rpcUrl: string, to: string, data: `0x${string}`): Promise
     return json.result;
 }
 
+async function fetchOneLottoSummary(rpcUrl: string, address: string): Promise<AALottoSummary> {
+    const [
+        playerCountRaw,
+        maxPlayersRaw,
+        entryFeeRaw,
+        entryTokenRaw,
+        lottoStateRaw,
+        winnerRaw,
+        prizeWithdrawnRaw,
+        randomnessRequestedAtRaw,
+        calculatingTimeoutRaw,
+    ] = await Promise.all([
+        ethCall(
+            rpcUrl,
+            address,
+            encodeFunctionData({ abi: LOTTO_INSTANCE_VIEW_ABI, functionName: 'getPlayerCount' })
+        ),
+        ethCall(rpcUrl, address, encodeFunctionData({ abi: LOTTO_INSTANCE_VIEW_ABI, functionName: 'maxPlayers' })),
+        ethCall(rpcUrl, address, encodeFunctionData({ abi: LOTTO_INSTANCE_VIEW_ABI, functionName: 'entryFee' })),
+        ethCall(
+            rpcUrl,
+            address,
+            encodeFunctionData({ abi: LOTTO_INSTANCE_VIEW_ABI, functionName: 'entryToken' })
+        ),
+        ethCall(
+            rpcUrl,
+            address,
+            encodeFunctionData({ abi: LOTTO_INSTANCE_VIEW_ABI, functionName: 'lottoState' })
+        ),
+        ethCall(rpcUrl, address, encodeFunctionData({ abi: LOTTO_INSTANCE_VIEW_ABI, functionName: 'winner' })),
+        ethCall(
+            rpcUrl,
+            address,
+            encodeFunctionData({ abi: LOTTO_INSTANCE_VIEW_ABI, functionName: 'isPrizeWithdrawn' })
+        ),
+        ethCall(
+            rpcUrl,
+            address,
+            encodeFunctionData({ abi: LOTTO_INSTANCE_VIEW_ABI, functionName: 'randomnessRequestedAt' })
+        ),
+        ethCall(
+            rpcUrl,
+            address,
+            encodeFunctionData({ abi: LOTTO_INSTANCE_VIEW_ABI, functionName: 'CALCULATING_TIMEOUT' })
+        ),
+    ]);
+
+    return {
+        address,
+        playerCount: decodeFunctionResult({
+            abi: LOTTO_INSTANCE_VIEW_ABI,
+            functionName: 'getPlayerCount',
+            data: playerCountRaw,
+        }) as bigint,
+        maxPlayers: decodeFunctionResult({
+            abi: LOTTO_INSTANCE_VIEW_ABI,
+            functionName: 'maxPlayers',
+            data: maxPlayersRaw,
+        }) as bigint,
+        entryFee: decodeFunctionResult({
+            abi: LOTTO_INSTANCE_VIEW_ABI,
+            functionName: 'entryFee',
+            data: entryFeeRaw,
+        }) as bigint,
+        entryToken: decodeFunctionResult({
+            abi: LOTTO_INSTANCE_VIEW_ABI,
+            functionName: 'entryToken',
+            data: entryTokenRaw,
+        }) as string,
+        lottoState: toBigIntValue(
+            decodeFunctionResult({
+                abi: LOTTO_INSTANCE_VIEW_ABI,
+                functionName: 'lottoState',
+                data: lottoStateRaw,
+            })
+        ),
+        winner: decodeFunctionResult({
+            abi: LOTTO_INSTANCE_VIEW_ABI,
+            functionName: 'winner',
+            data: winnerRaw,
+        }) as string,
+        isPrizeWithdrawn: decodeFunctionResult({
+            abi: LOTTO_INSTANCE_VIEW_ABI,
+            functionName: 'isPrizeWithdrawn',
+            data: prizeWithdrawnRaw,
+        }) as boolean,
+        randomnessRequestedAt: decodeFunctionResult({
+            abi: LOTTO_INSTANCE_VIEW_ABI,
+            functionName: 'randomnessRequestedAt',
+            data: randomnessRequestedAtRaw,
+        }) as bigint,
+        calculatingTimeout: decodeFunctionResult({
+            abi: LOTTO_INSTANCE_VIEW_ABI,
+            functionName: 'CALCULATING_TIMEOUT',
+            data: calculatingTimeoutRaw,
+        }) as bigint,
+    };
+}
+
 export async function fetchLottoSummaries(rpcUrl: string, lottoFactoryAddress: string): Promise<AALottoSummary[]> {
     const allLottosData = encodeFunctionData({
         abi: LOTTO_FACTORY_VIEW_ABI,
@@ -33,104 +132,9 @@ export async function fetchLottoSummaries(rpcUrl: string, lottoFactoryAddress: s
         data: allLottosRaw,
     }) as string[];
 
-    return Promise.all(
-        addresses.map(async (address) => {
-            const [
-                playerCountRaw,
-                maxPlayersRaw,
-                entryFeeRaw,
-                entryTokenRaw,
-                lottoStateRaw,
-                winnerRaw,
-                prizeWithdrawnRaw,
-                randomnessRequestedAtRaw,
-                calculatingTimeoutRaw,
-            ] = await Promise.all([
-                ethCall(
-                    rpcUrl,
-                    address,
-                    encodeFunctionData({ abi: LOTTO_INSTANCE_VIEW_ABI, functionName: 'getPlayerCount' })
-                ),
-                ethCall(rpcUrl, address, encodeFunctionData({ abi: LOTTO_INSTANCE_VIEW_ABI, functionName: 'maxPlayers' })),
-                ethCall(rpcUrl, address, encodeFunctionData({ abi: LOTTO_INSTANCE_VIEW_ABI, functionName: 'entryFee' })),
-                ethCall(
-                    rpcUrl,
-                    address,
-                    encodeFunctionData({ abi: LOTTO_INSTANCE_VIEW_ABI, functionName: 'entryToken' })
-                ),
-                ethCall(
-                    rpcUrl,
-                    address,
-                    encodeFunctionData({ abi: LOTTO_INSTANCE_VIEW_ABI, functionName: 'lottoState' })
-                ),
-                ethCall(rpcUrl, address, encodeFunctionData({ abi: LOTTO_INSTANCE_VIEW_ABI, functionName: 'winner' })),
-                ethCall(
-                    rpcUrl,
-                    address,
-                    encodeFunctionData({ abi: LOTTO_INSTANCE_VIEW_ABI, functionName: 'isPrizeWithdrawn' })
-                ),
-                ethCall(
-                    rpcUrl,
-                    address,
-                    encodeFunctionData({ abi: LOTTO_INSTANCE_VIEW_ABI, functionName: 'randomnessRequestedAt' })
-                ),
-                ethCall(
-                    rpcUrl,
-                    address,
-                    encodeFunctionData({ abi: LOTTO_INSTANCE_VIEW_ABI, functionName: 'CALCULATING_TIMEOUT' })
-                ),
-            ]);
+    return Promise.all(addresses.map(async (address) => fetchOneLottoSummary(rpcUrl, address)));
+}
 
-            return {
-                address,
-                playerCount: decodeFunctionResult({
-                    abi: LOTTO_INSTANCE_VIEW_ABI,
-                    functionName: 'getPlayerCount',
-                    data: playerCountRaw,
-                }) as bigint,
-                maxPlayers: decodeFunctionResult({
-                    abi: LOTTO_INSTANCE_VIEW_ABI,
-                    functionName: 'maxPlayers',
-                    data: maxPlayersRaw,
-                }) as bigint,
-                entryFee: decodeFunctionResult({
-                    abi: LOTTO_INSTANCE_VIEW_ABI,
-                    functionName: 'entryFee',
-                    data: entryFeeRaw,
-                }) as bigint,
-                entryToken: decodeFunctionResult({
-                    abi: LOTTO_INSTANCE_VIEW_ABI,
-                    functionName: 'entryToken',
-                    data: entryTokenRaw,
-                }) as string,
-                lottoState: toBigIntValue(
-                    decodeFunctionResult({
-                        abi: LOTTO_INSTANCE_VIEW_ABI,
-                        functionName: 'lottoState',
-                        data: lottoStateRaw,
-                    })
-                ),
-                winner: decodeFunctionResult({
-                    abi: LOTTO_INSTANCE_VIEW_ABI,
-                    functionName: 'winner',
-                    data: winnerRaw,
-                }) as string,
-                isPrizeWithdrawn: decodeFunctionResult({
-                    abi: LOTTO_INSTANCE_VIEW_ABI,
-                    functionName: 'isPrizeWithdrawn',
-                    data: prizeWithdrawnRaw,
-                }) as boolean,
-                randomnessRequestedAt: decodeFunctionResult({
-                    abi: LOTTO_INSTANCE_VIEW_ABI,
-                    functionName: 'randomnessRequestedAt',
-                    data: randomnessRequestedAtRaw,
-                }) as bigint,
-                calculatingTimeout: decodeFunctionResult({
-                    abi: LOTTO_INSTANCE_VIEW_ABI,
-                    functionName: 'CALCULATING_TIMEOUT',
-                    data: calculatingTimeoutRaw,
-                }) as bigint,
-            } as AALottoSummary;
-        })
-    );
+export async function fetchLottoSummaryByAddress(rpcUrl: string, lottoAddress: string): Promise<AALottoSummary> {
+    return fetchOneLottoSummary(rpcUrl, lottoAddress);
 }

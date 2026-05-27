@@ -33,7 +33,7 @@ export function ActionButtonsSection({
                     fontSize: '1rem',
                 }}
             >
-                {isLoading ? 'Processing UserOp...' : label}
+                {label}
             </button>
         </div>
     );

@@ -1,8 +1,10 @@
 'use client';
 
+import { useState } from 'react';
 import { AASection } from '@/components/aa/layout/AASection';
 import { AA_LOTTO_JOIN_ACTION_CARDS } from '@/hooks/aa/lottoDetailConstants';
 import type { useAALottoDetailPage } from '@/hooks/aa/useAALottoDetailPage';
+import { LottoState } from '@/hooks/shared/lib/lottoState';
 import type { AAUi } from '@/styles/aa/uiStyles';
 
 type Detail = ReturnType<typeof useAALottoDetailPage>;
@@ -13,6 +15,7 @@ type Props = {
 };
 
 export function LottoDetailActionCardsSection({ ui, d }: Props) {
+    const [isExecutingFlow, setIsExecutingFlow] = useState(false);
     const visibleAction = d.nextJoinAction === 'approveEntryFee' ? 'joinLotto' : d.nextJoinAction;
     const visibleCards = AA_LOTTO_JOIN_ACTION_CARDS.filter((card) => card.action === visibleAction);
 
@@ -20,7 +23,13 @@ export function LottoDetailActionCardsSection({ ui, d }: Props) {
         <AASection ui={ui}>
             {visibleCards.length === 0 ? (
                 <p style={{ marginTop: 0, color: '#c6dfe2', lineHeight: 1.55 }}>
-                    No available action for current status.
+                    {d.statusNumber === LottoState.CALCULATING && !d.canTriggerRefundMode
+                        ? 'Winner selection is in progress (CALCULATING). Wait for VRF completion. If this state is stuck past timeout, triggerRefundMode will be enabled.'
+                        : d.statusNumber === LottoState.CLOSED && !d.canWithdrawPrize
+                            ? 'The lottery is CLOSED. Only the recorded winner can withdrawPrize when prize is not withdrawn yet.'
+                            : d.statusNumber === LottoState.REFUNDING && !d.canClaimRefund
+                                ? 'The lottery is REFUNDING. claimRefund is available only for eligible participants.'
+                                : 'No available action for current status.'}
                 </p>
             ) : null}
 
@@ -65,6 +74,7 @@ export function LottoDetailActionCardsSection({ ui, d }: Props) {
                     const executeEnabled =
                         d.hasValidConfig &&
                         !d.isLoading &&
+                        !isExecutingFlow &&
                         !d.mustRefreshAAAccount &&
                         d.AAAccountHydrated &&
                         !blocksWrongState &&
@@ -110,15 +120,28 @@ export function LottoDetailActionCardsSection({ ui, d }: Props) {
                                     type="button"
                                     onClick={() => {
                                         void (async () => {
-                                            if (needsAutoApproveBeforeJoin) {
-                                                const approved = await d.handleExecuteUserOp('approveEntryFee');
-                                                if (!approved) return;
+                                            setIsExecutingFlow(true);
+                                            try {
+                                                if (needsAutoApproveBeforeJoin) {
+                                                    const approved = await d.handleExecuteUserOp('approveEntryFee');
+                                                    if (!approved) return;
 
-                                                await d.handleExecuteUserOp('joinLotto', { skipJoinAllowanceCheck: true });
-                                                return;
+                                                    const joined = await d.handleExecuteUserOp('joinLotto', {
+                                                        skipJoinAllowanceCheck: true,
+                                                    });
+                                                    if (joined) {
+                                                        await d.fetchSummary();
+                                                    }
+                                                    return;
+                                                }
+
+                                                const executed = await d.handleExecuteUserOp(card.action);
+                                                if (executed) {
+                                                    await d.fetchSummary();
+                                                }
+                                            } finally {
+                                                setIsExecutingFlow(false);
                                             }
-
-                                            await d.handleExecuteUserOp(card.action);
                                         })();
                                     }}
                                     disabled={!executeEnabled}
@@ -135,7 +158,7 @@ export function LottoDetailActionCardsSection({ ui, d }: Props) {
                                 >
                                     {actionEstimating
                                         ? 'Estimating...'
-                                        : d.isLoading && isSelected
+                                        : (d.isLoading && isSelected) || isExecutingFlow
                                           ? 'Executing...'
                                           : 'Execute'}
                                 </button>

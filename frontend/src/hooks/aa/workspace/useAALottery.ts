@@ -24,6 +24,8 @@ export function useAALottery({
     entryTokenAddress,
     initialJoinTargetAddress,
     gasEstimateMode = 'auto',
+    loadJoinInstances = true,
+    joinSummaryOverride,
 }: UseAALotteryProps) {
     const [status, setStatus] = useState('Log in with Web3Auth to create or load your AA account.');
     const [isLoading, setIsLoading] = useState(false);
@@ -44,7 +46,7 @@ export function useAALottery({
     const [selectedJoinEntryToken, setSelectedJoinEntryToken] = useState('');
 
     const lottoReads = useAALottoInstances(lottoFactoryAddress, {
-        enabled: Boolean(lottoFactoryAddress),
+        enabled: mode === 'join' ? Boolean(lottoFactoryAddress) && loadJoinInstances : Boolean(lottoFactoryAddress),
     });
     const tokenReads = useAATokenReads({
         mode,
@@ -144,24 +146,15 @@ export function useAALottery({
         selectedJoinEntryToken,
         letBalance: tokenReads.letBalance,
         joinEntryAllowance: tokenReads.joinEntryAllowance,
-        lottoInstances: lottoReads.lottoInstances,
+        lottoInstances: joinSummaryOverride ? [joinSummaryOverride] : lottoReads.lottoInstances,
         fetchLetBalance: tokenReads.fetchLetBalance,
         fetchJoinAllowance: tokenReads.fetchJoinAllowance,
         fetchLottoInstances: lottoReads.fetchLottoInstances,
     });
-
-    useEffect(() => {
-        if (session.sessionToken && !account.AAAccountHydrated) {
-            setStatus('An existing session was found. Use Refresh Account State to load your account.');
-        }
-    }, [account.AAAccountHydrated, session.sessionToken]);
-
-    useEffect(() => {
-        if (!session.sessionToken || !account.accountAddress) return;
-        void account.fetchAccountNonce(account.accountAddress).catch((error) => {
-            console.error('Failed to refresh account nonce:', error);
-        });
-    }, [account.accountAddress, account.fetchAccountNonce, session.sessionToken]);
+    const fetchAAAccount = account.fetchAAAccount;
+    const fetchAccountNonce = account.fetchAccountNonce;
+    const setAAAccountHydrated = account.setAAAccountHydrated;
+    const fetchLottoInstances = lottoReads.fetchLottoInstances;
 
     const handleSelectJoinTarget = useCallback((address: string, entryFeeWei?: bigint, entryToken?: string) => {
         setJoinTargetAddress(address);
@@ -205,15 +198,66 @@ export function useAALottery({
 
     const hydrateAAAccount = useCallback(
         async (owner: string) => {
-            const nextAccountAddress = await account.fetchAAAccount(owner);
-            await account.fetchAccountNonce(nextAccountAddress);
-            if (mode === 'join') {
-                await lottoReads.fetchLottoInstances();
+            const nextAccountAddress = await fetchAAAccount(owner);
+            await fetchAccountNonce(nextAccountAddress);
+            if (mode === 'join' && loadJoinInstances) {
+                await fetchLottoInstances();
             }
-            account.setAAAccountHydrated(true);
+            setAAAccountHydrated(true);
         },
-        [account, lottoReads, mode]
+        [fetchAAAccount, fetchAccountNonce, fetchLottoInstances, loadJoinInstances, mode, setAAAccountHydrated]
     );
+
+    const normalizedSessionOwner =
+        session.sessionToken && isAddress(session.sessionToken) ? session.sessionToken.toLowerCase() : '';
+    const normalizedHydratedOwner =
+        account.ownerAddress && isAddress(account.ownerAddress) ? account.ownerAddress.toLowerCase() : '';
+    const needsHydration =
+        Boolean(normalizedSessionOwner) &&
+        (!account.AAAccountHydrated || normalizedHydratedOwner !== normalizedSessionOwner);
+
+    useEffect(() => {
+        if (!session.sessionToken || !needsHydration) {
+            return;
+        }
+
+        let cancelled = false;
+        void (async () => {
+            try {
+                setIsLoading(true);
+                setStatus('Loading AA account from your current session...');
+                await hydrateAAAccount(session.sessionToken);
+                if (!cancelled) {
+                    setStatus('AA account is ready.');
+                }
+            } catch (error) {
+                const message = error instanceof Error ? error.message : 'Failed to load AA account.';
+                if (!cancelled) {
+                    setStatus(`Error: ${message}`);
+                }
+            } finally {
+                if (!cancelled) {
+                    setIsLoading(false);
+                }
+            }
+        })();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [hydrateAAAccount, needsHydration, session.sessionToken]);
+
+    useEffect(() => {
+        if (!session.sessionToken) {
+            return;
+        }
+        if (!needsHydration && isLoading) {
+            setIsLoading(false);
+        }
+        if (!needsHydration && status === 'Loading AA account from your current session...') {
+            setStatus('AA account is ready.');
+        }
+    }, [isLoading, needsHydration, session.sessionToken, status]);
 
     const handleWeb3AuthLogin = useCallback(async () => {
         try {
@@ -285,8 +329,11 @@ export function useAALottery({
 
     const joinTargetSummary = useMemo(() => {
         if (mode !== 'join') return undefined;
+        if (joinSummaryOverride?.address?.toLowerCase() === joinTargetAddress.toLowerCase()) {
+            return joinSummaryOverride;
+        }
         return findLottoSummary(lottoReads.lottoInstances, joinTargetAddress);
-    }, [joinTargetAddress, lottoReads.lottoInstances, mode]);
+    }, [joinSummaryOverride, joinTargetAddress, lottoReads.lottoInstances, mode]);
 
     const hasSufficientJoinAllowance = useMemo(() => {
         if (mode !== 'join') return true;

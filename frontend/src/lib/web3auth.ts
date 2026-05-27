@@ -10,6 +10,9 @@ export async function getWeb3Auth(): Promise<Web3Auth> {
     if (!clientId) {
         throw new Error('NEXT_PUBLIC_WEB3AUTH_CLIENT_ID is required.');
     }
+    if (!targetRpcUrl) {
+        throw new Error('NEXT_PUBLIC_RPC_URL is required.');
+    }
 
     if (!web3AuthInstance) {
         const privateKeyProvider = new EthereumPrivateKeyProvider({
@@ -17,7 +20,7 @@ export async function getWeb3Auth(): Promise<Web3Auth> {
                 chainConfig: {
                     chainNamespace: CHAIN_NAMESPACES.EIP155,
                     chainId: targetChainIdHex(),
-                    rpcTarget: targetRpcUrl || 'http://127.0.0.1:8545',
+                    rpcTarget: targetRpcUrl,
                     displayName: targetNetworkName,
                     tickerName: 'ETH',
                     ticker: 'ETH',

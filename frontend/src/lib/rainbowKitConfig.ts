@@ -20,7 +20,7 @@ export function getRainbowKitConfig() {
 
         //
         transports: {
-            [anvil.id]: http(targetChainId === anvil.id ? targetRpcUrl : 'http://127.0.0.1:8545'),
+            [anvil.id]: targetChainId === anvil.id && targetRpcUrl ? http(targetRpcUrl) : http(),
             [sepolia.id]: targetChainId === sepolia.id && targetRpcUrl ? http(targetRpcUrl) : http(),
             [baseSepolia.id]: targetChainId === baseSepolia.id && targetRpcUrl ? http(targetRpcUrl) : http(),
             [mainnet.id]: http(),

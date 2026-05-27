@@ -55,6 +55,8 @@ export interface UseAALotteryProps {
     entryTokenAddress?: string;
     initialJoinTargetAddress?: string;
     gasEstimateMode?: AAGasEstimateMode;
+    loadJoinInstances?: boolean;
+    joinSummaryOverride?: AALottoSummary;
 }
 
 export type UserOpFields = {

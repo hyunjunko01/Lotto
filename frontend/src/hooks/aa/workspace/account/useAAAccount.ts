@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { isAddress } from 'viem';
 import type { AAAccountResponse, AANonceResponse } from '@/lib/aa/types';
 import { deriveSaltFromOwnerAddress } from '@/lib/aa/userop/packing';
@@ -13,6 +13,8 @@ export function useAAAccount() {
     const [accountDeployed, setAccountDeployed] = useState(false);
     const [accountNonce, setAccountNonce] = useState<bigint>(BigInt(0));
     const [AAAccountHydrated, setAAAccountHydrated] = useState(false);
+    const nonceCacheRef = useRef<{ sender: string; nonce: bigint; fetchedAt: number } | null>(null);
+    const inflightNonceRequestRef = useRef<{ sender: string; promise: Promise<bigint> } | null>(null);
 
     const fetchAAAccount = useCallback(async (owner: string): Promise<string> => {
         if (!isAddress(owner)) {
@@ -42,15 +44,50 @@ export function useAAAccount() {
             return BigInt(0);
         }
 
-        const response = await fetch(`/api/aa/userop/nonce?sender=${sender}`, { method: 'GET' });
-        const json = (await response.json()) as AANonceResponse;
-        if (!response.ok || !json.ok || json.nonce === undefined) {
-            throw new Error(json.error ?? 'Failed to fetch account nonce.');
+        const normalizedSender = sender.toLowerCase();
+        const now = Date.now();
+        const cached = nonceCacheRef.current;
+        if (
+            cached &&
+            cached.sender === normalizedSender &&
+            now - cached.fetchedAt < 3000
+        ) {
+            return cached.nonce;
         }
 
-        const nonce = BigInt(json.nonce);
-        setAccountNonce(nonce);
-        return nonce;
+        const inflight = inflightNonceRequestRef.current;
+        if (inflight && inflight.sender === normalizedSender) {
+            return inflight.promise;
+        }
+
+        const requestPromise = (async () => {
+            const response = await fetch(`/api/aa/userop/nonce?sender=${sender}`, { method: 'GET' });
+            const json = (await response.json()) as AANonceResponse;
+            if (!response.ok || !json.ok || json.nonce === undefined) {
+                if (response.status === 429 && cached && cached.sender === normalizedSender) {
+                    return cached.nonce;
+                }
+                throw new Error(json.error ?? 'Failed to fetch account nonce.');
+            }
+
+            const nonce = BigInt(json.nonce);
+            nonceCacheRef.current = {
+                sender: normalizedSender,
+                nonce,
+                fetchedAt: Date.now(),
+            };
+            setAccountNonce(nonce);
+            return nonce;
+        })();
+
+        inflightNonceRequestRef.current = { sender: normalizedSender, promise: requestPromise };
+        try {
+            return await requestPromise;
+        } finally {
+            if (inflightNonceRequestRef.current?.promise === requestPromise) {
+                inflightNonceRequestRef.current = null;
+            }
+        }
     }, []);
 
     useEffect(() => {
@@ -60,8 +97,13 @@ export function useAAAccount() {
         }
 
         const checkDeployed = async () => {
+            const rpcUrl = targetRpcUrl;
+            if (!rpcUrl) {
+                setAccountDeployed(false);
+                return;
+            }
+
             try {
-                const rpcUrl = targetRpcUrl || 'http://127.0.0.1:8545';
                 const response = await fetch(rpcUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -92,6 +134,8 @@ export function useAAAccount() {
         setAccountNonce(BigInt(0));
         setAccountDeployed(false);
         setAAAccountHydrated(false);
+        nonceCacheRef.current = null;
+        inflightNonceRequestRef.current = null;
     }, []);
 
     return {

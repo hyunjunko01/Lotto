@@ -34,15 +34,20 @@ export function useAATokenReads({
             entryTokenAddress && isAddress(entryTokenAddress)
                 ? entryTokenAddress
                 : selectedJoinEntryToken && isAddress(selectedJoinEntryToken)
-                  ? selectedJoinEntryToken
-                  : '';
+                    ? selectedJoinEntryToken
+                    : '';
         if (!tokenAddress) {
             setLetBalance(null);
             return;
         }
 
+        const rpcUrl = targetRpcUrl;
+        if (!rpcUrl) {
+            setLetBalance(null);
+            return;
+        }
+
         try {
-            const rpcUrl = targetRpcUrl || 'http://127.0.0.1:8545';
             const callData = encodeFunctionData({
                 abi: ERC20_BALANCE_OF_ABI,
                 functionName: 'balanceOf',
@@ -93,8 +98,13 @@ export function useAATokenReads({
             return;
         }
 
+        const rpcUrl = targetRpcUrl;
+        if (!rpcUrl) {
+            setJoinEntryAllowance(null);
+            return;
+        }
+
         try {
-            const rpcUrl = targetRpcUrl || 'http://127.0.0.1:8545';
             const callData = encodeFunctionData({
                 abi: ERC20_ALLOWANCE_ABI,
                 functionName: 'allowance',
@@ -122,7 +132,11 @@ export function useAATokenReads({
             }) as bigint;
             setJoinEntryAllowance(allowance);
         } catch (error) {
-            console.error('Failed to fetch join allowance:', error);
+            const message = error instanceof Error ? error.message : '';
+            // Avoid noisy console spam for expected RPC throughput throttling.
+            if (!/429|Too Many Requests|compute units per second/i.test(message)) {
+                console.error('Failed to fetch join allowance:', error);
+            }
             setJoinEntryAllowance(null);
         }
     }, [accountAddress, joinTargetAddress, mode, selectedJoinEntryToken]);
@@ -132,12 +146,19 @@ export function useAATokenReads({
     }, [fetchLetBalance]);
 
     useEffect(() => {
+        if (!targetRpcUrl) {
+            return;
+        }
+        if (
+            mode !== 'join' ||
+            !isAddress(accountAddress) ||
+            !isAddress(joinTargetAddress) ||
+            !isAddress(selectedJoinEntryToken)
+        ) {
+            return;
+        }
         void fetchJoinAllowance();
-        const id = setInterval(() => {
-            void fetchJoinAllowance();
-        }, 3000);
-        return () => clearInterval(id);
-    }, [fetchJoinAllowance]);
+    }, [accountAddress, fetchJoinAllowance, joinTargetAddress, mode, selectedJoinEntryToken]);
 
     const resetTokenReads = useCallback(() => {
         setLetBalance(null);
