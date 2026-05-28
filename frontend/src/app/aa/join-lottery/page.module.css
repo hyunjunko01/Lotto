@@ -1,0 +1,36 @@
+.backLink {
+  display: inline-flex;
+  margin-bottom: 12px;
+  color: #ff9bcf;
+  text-decoration: none;
+  border: 1px solid #ff4fa7;
+  border-radius: 10px;
+  padding: 7px 10px;
+  font-weight: 300;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  box-shadow: 0 0 8px rgba(255, 79, 167, 0.2);
+}
+
+.metaRow {
+  margin-top: 8px;
+  font-size: 0.86rem;
+  opacity: 0.9;
+  word-break: break-all;
+}
+
+.list {
+  display: grid;
+  gap: 10px;
+}
+
+.instanceCard {
+  display: block;
+  border: 1px solid #ff4fa7;
+  border-radius: 10px;
+  padding: 12px 14px;
+  color: #ff9bcf;
+  text-decoration: none;
+  word-break: break-all;
+  background: #000000;
+}

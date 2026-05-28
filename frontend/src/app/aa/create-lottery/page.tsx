@@ -1,11 +1,12 @@
 'use client';
-
+import { useState } from 'react';
 import Link from 'next/link';
 import { isAddress } from 'viem';
 import { AALotteryWorkspace } from '@/components/aa/workspace/AALotteryWorkspace';
 import { AAHero } from '@/components/aa/layout/AAHero';
 import { AASection } from '@/components/aa/layout/AASection';
 import { useAAUi } from '@/components/aa/layout/useAAUi';
+import styles from './page.module.css';
 
 const LOTTO_FACTORY_ADDRESS = process.env.NEXT_PUBLIC_LOTTO_FACTORY_ADDRESS;
 const ACCOUNT_FACTORY_ADDRESS = process.env.NEXT_PUBLIC_ACCOUNT_FACTORY_ADDRESS;
@@ -13,6 +14,7 @@ const ENTRY_TOKEN_ADDRESS = process.env.NEXT_PUBLIC_ENTRY_TOKEN_ADDRESS;
 
 export default function AACreateLotteryPage() {
   const ui = useAAUi();
+  const [copyFeedback, setCopyFeedback] = useState('');
 
   const hasValidFactoryConfig =
     typeof LOTTO_FACTORY_ADDRESS === 'string' &&
@@ -22,26 +24,43 @@ export default function AACreateLotteryPage() {
     isAddress(ACCOUNT_FACTORY_ADDRESS) &&
     isAddress(ENTRY_TOKEN_ADDRESS);
 
+  const handleCopyAddress = async () => {
+    if (!LOTTO_FACTORY_ADDRESS) return;
+    try {
+      await navigator.clipboard.writeText(LOTTO_FACTORY_ADDRESS);
+      setCopyFeedback('Copied');
+      setTimeout(() => setCopyFeedback(''), 1200);
+    } catch {
+      setCopyFeedback('Failed');
+      setTimeout(() => setCopyFeedback(''), 1200);
+    }
+  };
+
   return (
     <main style={ui.pageMain}>
       <div style={ui.container}>
         <Link
           href="/aa"
-          style={{
-            display: 'inline-flex',
-            marginBottom: 14,
-            color: '#8fe8ff',
-            textDecoration: 'underline',
-            fontWeight: 700,
-          }}
+          className={styles.backLink}
         >
           ← Back to AA Home
         </Link>
-        <AAHero ui={ui} pill="Web3Auth AA Create" title="Create Lottery with AA">
-          <p style={ui.subtitle}>The `createAccount` initCode is auto-filled, and this flow only executes `createLotto`.</p>
-          <p style={{ marginTop: 10, color: '#d4eaee', wordBreak: 'break-all' }}>
-            Target LottoFactory: {LOTTO_FACTORY_ADDRESS ?? '(missing NEXT_PUBLIC_LOTTO_FACTORY_ADDRESS)'}
-          </p>
+        <AAHero ui={ui} pill="AA Create" title="Create Lottery">
+          <p className={styles.subtitle}>Set your lottery values and create in one flow.</p>
+          <div className={styles.addressRow}>
+            <span className={styles.addressText}>
+              Lottery Address: {LOTTO_FACTORY_ADDRESS ?? '(missing NEXT_PUBLIC_LOTTO_FACTORY_ADDRESS)'}
+            </span>
+            {LOTTO_FACTORY_ADDRESS ? (
+              <button
+                type="button"
+                onClick={() => void handleCopyAddress()}
+                className={styles.copyButton}
+              >
+                {copyFeedback || 'Copy'}
+              </button>
+            ) : null}
+          </div>
         </AAHero>
 
         {!hasValidFactoryConfig ? (
@@ -53,8 +72,8 @@ export default function AACreateLotteryPage() {
           <AALotteryWorkspace
             mode="create"
             gasEstimateMode="manual"
-            title="Web3Auth AA + Create Lottery"
-            subtitle="After Web3Auth login, this flow prepares your AA account and executes `factory.createLotto`."
+            title="Create Lottery Action"
+            subtitle="After login, execute create with your current inputs."
             lottoFactoryAddress={LOTTO_FACTORY_ADDRESS}
             accountFactoryAddress={ACCOUNT_FACTORY_ADDRESS}
             entryTokenAddress={ENTRY_TOKEN_ADDRESS}

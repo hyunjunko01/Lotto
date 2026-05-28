@@ -6,6 +6,7 @@ import { AALotteryWorkspace } from '@/components/aa/workspace/AALotteryWorkspace
 import { AAHero } from '@/components/aa/layout/AAHero';
 import { AASection } from '@/components/aa/layout/AASection';
 import { useAAUi } from '@/components/aa/layout/useAAUi';
+import styles from './page.module.css';
 
 const ENTRY_TOKEN_ADDRESS = process.env.NEXT_PUBLIC_ENTRY_TOKEN_ADDRESS;
 const ACCOUNT_FACTORY_ADDRESS = process.env.NEXT_PUBLIC_ACCOUNT_FACTORY_ADDRESS;
@@ -27,19 +28,13 @@ export default function AAFaucetPage() {
       <div style={ui.container}>
         <Link
           href="/aa"
-          style={{
-            display: 'inline-flex',
-            marginBottom: 14,
-            color: '#8fe8ff',
-            textDecoration: 'underline',
-            fontWeight: 700,
-          }}
+          className={styles.backLink}
         >
           ← Back to AA Home
         </Link>
         <AAHero ui={ui} pill="Web3Auth AA Faucet" title="Charge Entry Tokens (AA)">
           <p style={ui.subtitle}>Your AA account calls `claimTestTokens()` via a UserOp.</p>
-          <p style={{ marginTop: 10, color: '#d4eaee', wordBreak: 'break-all' }}>
+          <p className={styles.metaRow}>
             Entry Token: {ENTRY_TOKEN_ADDRESS ?? '(missing NEXT_PUBLIC_ENTRY_TOKEN_ADDRESS)'}
           </p>
         </AAHero>

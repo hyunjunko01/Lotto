@@ -1,0 +1,25 @@
+.wordmark {
+  margin: 0;
+  font-size: clamp(2.5rem, 8.4vw, 4.7rem);
+  line-height: 1.02;
+  letter-spacing: 0.08em;
+  font-weight: 300;
+  font-family: "Helvetica Neue", "Avenir Next", "Segoe UI", sans-serif;
+  text-transform: uppercase;
+  color: #ff77c0;
+  -webkit-text-stroke: 0.8px rgba(255, 119, 192, 0.75);
+  text-shadow:
+    0 0 4px rgba(255, 119, 192, 0.75),
+    0 0 11px rgba(255, 119, 192, 0.45),
+    0 0 24px rgba(255, 119, 192, 0.22);
+}
+
+.subline {
+  margin-top: 0.5rem;
+  color: #ff9ccf;
+  font-size: 0.75rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  font-weight: 200;
+  font-family: "Helvetica Neue", "Avenir Next", "Segoe UI", sans-serif;
+}

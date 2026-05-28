@@ -1,0 +1,206 @@
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  border-bottom: 1px solid #2b2b2b;
+  backdrop-filter: blur(8px);
+  background: rgba(0, 0, 0, 0.9);
+}
+
+.inner {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 0.75rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.9rem;
+  flex-wrap: wrap;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.brandLink {
+  text-decoration: none;
+  color: #ff7fc5;
+  font-family: "Helvetica Neue", "Avenir Next", "Segoe UI", sans-serif;
+  font-weight: 300;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-shadow:
+    0 0 4px rgba(255, 127, 197, 0.7),
+    0 0 12px rgba(255, 127, 197, 0.35);
+}
+
+.modeTag {
+  border: 1px solid;
+  border-radius: 999px;
+  padding: 0.18rem 0.5rem;
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+}
+
+.card {
+  border: 1px solid #363636;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.65);
+  padding: 0.36rem 0.6rem;
+  min-width: 0;
+}
+
+.label {
+  margin: 0;
+  color: #8d8d8d;
+  font-size: 0.66rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.value {
+  margin: 0.08rem 0 0;
+  font-size: 0.84rem;
+  font-family: "Helvetica Neue", "Avenir Next", "Segoe UI", sans-serif;
+  font-weight: 300;
+}
+
+.actionButton {
+  border: 1px solid;
+  border-radius: 10px;
+  height: 38px;
+  padding: 0 0.72rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  font-family: "Helvetica Neue", "Avenir Next", "Segoe UI", sans-serif;
+  font-size: 0.8rem;
+  font-weight: 300;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: transform 140ms ease, box-shadow 140ms ease;
+}
+
+.actionButton:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.actionButton:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.toneAa .modeTag,
+.toneAa .value {
+  color: #94efff;
+}
+
+.toneAa .modeTag {
+  border-color: #4ee2ff;
+  background: rgba(78, 226, 255, 0.1);
+}
+
+.toneAa .actionButton {
+  color: #94efff;
+  border-color: #4ee2ff;
+  box-shadow: 0 0 10px rgba(78, 226, 255, 0.2);
+}
+
+.toneAa .actionButton:hover:not(:disabled) {
+  box-shadow:
+    0 0 14px rgba(78, 226, 255, 0.34),
+    inset 0 0 10px rgba(78, 226, 255, 0.14);
+}
+
+.toneAa .card {
+  border-color: rgba(78, 226, 255, 0.28);
+}
+
+.toneMetamask .modeTag,
+.toneMetamask .value {
+  color: #ffd49a;
+}
+
+.toneMetamask .modeTag {
+  border-color: #ffb155;
+  background: rgba(255, 177, 85, 0.12);
+}
+
+.toneMetamask .card {
+  border-color: rgba(255, 177, 85, 0.3);
+}
+
+.metamaskButton {
+  border: 1px solid #ffb155;
+  border-radius: 10px;
+  height: 38px;
+  min-width: 180px;
+  padding: 0 0.78rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: #ffd49a;
+  font-family: "Helvetica Neue", "Avenir Next", "Segoe UI", sans-serif;
+  font-size: 0.8rem;
+  font-weight: 300;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: 0 0 10px rgba(255, 177, 85, 0.24);
+  transition: transform 140ms ease, box-shadow 140ms ease;
+}
+
+.metamaskButton:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow:
+    0 0 14px rgba(255, 177, 85, 0.38),
+    inset 0 0 10px rgba(255, 177, 85, 0.16);
+}
+
+.metamaskButton:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.metamaskButton:focus-visible {
+  outline: none;
+  border-color: #ffd79d;
+  box-shadow:
+    0 0 0 2px rgba(255, 215, 157, 0.18),
+    0 0 12px rgba(255, 177, 85, 0.3);
+}
+
+.metamaskWarn {
+  border-color: #ff8f8f;
+  color: #ffb3b3;
+  box-shadow: 0 0 10px rgba(255, 143, 143, 0.22);
+}
+
+.error {
+  margin: 0;
+  padding: 0 1rem 0.6rem;
+  text-align: center;
+  color: #ffb9d9;
+  font-size: 0.8rem;
+}
+
+@media (max-width: 760px) {
+  .inner {
+    justify-content: center;
+  }
+}

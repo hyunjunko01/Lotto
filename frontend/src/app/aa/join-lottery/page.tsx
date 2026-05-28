@@ -9,6 +9,7 @@ import { useAAUi } from '@/components/aa/layout/useAAUi';
 import { useAALottoInstances } from '@/hooks/aa/workspace/reads/useAALottoInstances';
 import { LOTTO_FACTORY_ADDRESS_ENV } from '@/hooks/shared/factory/constants';
 import { lottoStateToLabel } from '@/hooks/shared/lib/lottoState';
+import styles from './page.module.css';
 
 export default function AAJoinLotteryPage() {
   const ui = useAAUi();
@@ -33,19 +34,13 @@ export default function AAJoinLotteryPage() {
       <div style={ui.container}>
         <Link
           href="/aa"
-          style={{
-            display: 'inline-flex',
-            marginBottom: 14,
-            color: '#8fe8ff',
-            textDecoration: 'underline',
-            fontWeight: 700,
-          }}
+          className={styles.backLink}
         >
           ← Back to AA Home
         </Link>
         <AAHero ui={ui} pill="Web3Auth AA Join" title="Join Lottery with AA">
           <p style={ui.subtitle}>Select an instance, then build and send UserOps from the detail page.</p>
-          <p style={{ marginTop: 10, color: '#d4eaee', wordBreak: 'break-all' }}>Target LottoFactory: {lottoFactoryAddressText}</p>
+          <p className={styles.metaRow}>Target LottoFactory: {lottoFactoryAddressText}</p>
         </AAHero>
 
         <AASection ui={ui}>
@@ -62,21 +57,12 @@ export default function AAJoinLotteryPage() {
           ) : null}
 
           {lottoInstances.length > 0 ? (
-            <div style={{ display: 'grid', gap: 10 }}>
+            <div className={styles.list}>
               {lottoInstances.map((summary) => (
                 <Link
                   key={summary.address}
                   href={`/aa/lotto/${summary.address}`}
-                  style={{
-                    display: 'block',
-                    border: '1px solid #31525b',
-                    borderRadius: 10,
-                    padding: '12px 14px',
-                    color: '#8fe8ff',
-                    textDecoration: 'none',
-                    wordBreak: 'break-all',
-                    background: 'rgba(8, 22, 30, 0.7)',
-                  }}
+                  className={styles.instanceCard}
                 >
                   <p style={{ margin: 0, textDecoration: 'underline' }}>{summary.address}</p>
                   <p style={{ margin: '8px 0 0', color: '#d4eaee' }}>Status: {lottoStateToLabel(summary.lottoState)}</p>

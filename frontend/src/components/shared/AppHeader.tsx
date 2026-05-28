@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { createWalletClient, custom, formatEther, isAddress } from 'viem';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
@@ -12,6 +13,7 @@ import {
 import { useAASession } from '@/hooks/aa/workspace/account/useAASession';
 import { connectWeb3Auth } from '@/lib/web3auth';
 import { targetChain } from '@/lib/targetNetwork';
+import styles from './AppHeader.module.css';
 
 export function AppHeader() {
     const pathname = usePathname();
@@ -31,17 +33,6 @@ export function AppHeader() {
     }, [aaSession.sessionToken]);
     const hasAAProvider = Boolean(aaSession.web3Provider);
     const isAAConnected = Boolean(ownerAddress) && hasAAProvider;
-
-    const aaButtonStyle = {
-        padding: '8px 12px',
-        borderRadius: 10,
-        border: '1px solid #5d7980',
-        background: '#13242a',
-        color: '#d9eef1',
-        cursor: isAAAuthLoading || aaHeader.isRefreshing ? 'not-allowed' : 'pointer',
-        opacity: isAAAuthLoading || aaHeader.isRefreshing ? 0.6 : 1,
-        fontWeight: 700,
-    } as const;
 
     useEffect(() => {
         if (!isAaRoute || !isAAConnected || !ownerAddress) {
@@ -96,50 +87,86 @@ export function AppHeader() {
         return null;
     }
 
+    const modeLabel = isAaRoute ? 'AA Mode' : isMetamaskRoute ? 'MetaMask Mode' : '';
+    const toneClass = isAaRoute ? styles.toneAa : isMetamaskRoute ? styles.toneMetamask : '';
+
     const headerContent = isAaRoute ? (
         isAAConnected ? (
-            <div
-                style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 10,
-                    flexWrap: 'wrap',
-                }}
-            >
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
-                    <span style={{ color: '#8aa5a9', fontSize: '0.72rem', letterSpacing: 0.3 }}>AA Account</span>
-                    <span style={{ color: '#d4eaee', fontSize: '0.9rem' }}>
+            <div className={styles.controls}>
+                <div className={styles.card}>
+                    <p className={styles.label}>AA Account</p>
+                    <p className={styles.value}>
                         {aaHeader.accountAddress
                             ? `${aaHeader.accountAddress.slice(0, 6)}...${aaHeader.accountAddress.slice(-4)}`
                             : aaHeader.isRefreshing
                               ? 'Loading...'
                               : '-'}
-                    </span>
+                    </p>
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    <span style={{ color: '#8aa5a9', fontSize: '0.72rem', letterSpacing: 0.3 }}>Balance</span>
-                    <span style={{ color: '#b8cdcf', fontSize: '0.9rem' }}>{letBalanceLabel}</span>
+                <div className={styles.card}>
+                    <p className={styles.label}>Balance</p>
+                    <p className={styles.value}>{letBalanceLabel}</p>
                 </div>
                 <button
                     type="button"
                     onClick={handleAARefresh}
                     disabled={isAAAuthLoading || aaHeader.isRefreshing}
-                    style={aaButtonStyle}
+                    className={styles.actionButton}
                 >
                     {aaHeader.isRefreshing ? 'Refreshing...' : 'Refresh'}
                 </button>
-                <button type="button" onClick={handleAALogout} disabled={isAAAuthLoading} style={aaButtonStyle}>
+                <button type="button" onClick={handleAALogout} disabled={isAAAuthLoading} className={styles.actionButton}>
                     Log out
                 </button>
             </div>
         ) : (
-            <button type="button" onClick={() => void handleAALogin()} disabled={isAAAuthLoading} style={aaButtonStyle}>
+            <button type="button" onClick={() => void handleAALogin()} disabled={isAAAuthLoading} className={styles.actionButton}>
                 {isAAAuthLoading ? 'Connecting...' : ownerAddress ? 'Reconnect Web3Auth' : 'Log in with Web3Auth'}
             </button>
         )
     ) : isMetamaskRoute ? (
-        <ConnectButton />
+        <div className={styles.controls}>
+            <div className={styles.card}>
+                <p className={styles.label}>Wallet</p>
+                <p className={styles.value}>Connect EOA</p>
+            </div>
+            <ConnectButton.Custom>
+                {({ account, chain, mounted, authenticationStatus, openConnectModal, openChainModal, openAccountModal }) => {
+                    const ready = mounted && authenticationStatus !== 'loading';
+                    const connected = ready && account && chain && (!authenticationStatus || authenticationStatus === 'authenticated');
+
+                    if (!ready) {
+                        return (
+                            <button type="button" className={styles.metamaskButton} disabled>
+                                Loading...
+                            </button>
+                        );
+                    }
+
+                    if (!connected) {
+                        return (
+                            <button type="button" onClick={openConnectModal} className={styles.metamaskButton}>
+                                Connect MetaMask
+                            </button>
+                        );
+                    }
+
+                    if (chain.unsupported) {
+                        return (
+                            <button type="button" onClick={openChainModal} className={`${styles.metamaskButton} ${styles.metamaskWarn}`}>
+                                Wrong Network
+                            </button>
+                        );
+                    }
+
+                    return (
+                        <button type="button" onClick={openAccountModal} className={styles.metamaskButton}>
+                            {account.displayName}
+                        </button>
+                    );
+                }}
+            </ConnectButton.Custom>
+        </div>
     ) : null;
 
     if (!headerContent) {
@@ -147,34 +174,18 @@ export function AppHeader() {
     }
 
     return (
-        <header
-            style={{
-                position: 'sticky',
-                top: 0,
-                zIndex: 20,
-                backdropFilter: 'blur(6px)',
-                background: 'rgba(6, 19, 25, 0.88)',
-                borderBottom: '1px solid #2c4a52',
-            }}
-        >
-            <div
-                style={{
-                    maxWidth: 920,
-                    margin: '0 auto',
-                    padding: '12px 16px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 16,
-                    flexWrap: 'wrap',
-                }}
-            >
+        <header className={`${styles.header} ${toneClass}`}>
+            <div className={styles.inner}>
+                <div className={styles.brand}>
+                    <Link href="/" className={styles.brandLink}>
+                        Lotto
+                    </Link>
+                    <span className={styles.modeTag}>{modeLabel}</span>
+                </div>
                 {headerContent}
             </div>
             {isAaRoute && aaHeader.error ? (
-                <p style={{ margin: 0, padding: '0 16px 10px', textAlign: 'center', color: '#f3b2b2', fontSize: '0.82rem' }}>
-                    {aaHeader.error}
-                </p>
+                <p className={styles.error}>{aaHeader.error}</p>
             ) : null}
         </header>
     );

@@ -1,0 +1,92 @@
+.workspace {
+  margin-top: 16px;
+  padding: 16px;
+  border: 1px solid rgba(78, 226, 255, 0.24);
+  border-radius: 10px;
+  background: #000000;
+  max-width: 560px;
+  margin-inline: auto;
+}
+
+.title {
+  margin: 0 0 10px;
+  color: #c9f8ff;
+  font-weight: 400;
+}
+
+.subtitle {
+  margin-top: 0;
+  color: #88dceb;
+  line-height: 1.5;
+}
+
+.warning {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  line-height: 1.55;
+}
+
+.warningError {
+  border: 1px solid #924747;
+  background: rgba(127, 39, 39, 0.26);
+  color: #ffd3cb;
+}
+
+.warningInfo {
+  border: 1px solid #5d6f45;
+  background: rgba(60, 80, 40, 0.22);
+  color: #d8e8c8;
+}
+
+.warningStrong {
+  color: #ffe8e0;
+}
+
+.actionCard {
+  margin-top: 16px;
+  border: 1px solid #ff4fa7;
+  border-radius: 10px;
+  padding: 14px;
+  background: #000000;
+}
+
+.actionCardTitle {
+  margin: 0;
+}
+
+.actionCardDescription {
+  margin: 8px 0 0;
+  color: #c6dfe2;
+  line-height: 1.5;
+}
+
+.toggleButton {
+  margin-top: 10px;
+  width: 100%;
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1px solid #5d7980;
+  background: #13242a;
+  color: #d9eef1;
+  cursor: pointer;
+  text-align: left;
+}
+
+.userOpPanel {
+  margin-top: 10px;
+  border: 1px solid #2d3f45;
+  border-radius: 10px;
+  padding: 10px;
+  background: rgba(7, 19, 24, 0.72);
+  display: grid;
+  gap: 6px;
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 0.82rem;
+  color: #d4eaee;
+}
+
+.userOpText {
+  margin: 0;
+  word-break: break-all;
+}
