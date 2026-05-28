@@ -10,6 +10,18 @@ export default function MetamaskHomePage() {
     return (
         <main style={ui.pageMain}>
             <div style={ui.container}>
+                <Link
+                    href="/"
+                    style={{
+                        display: 'inline-flex',
+                        marginBottom: 14,
+                        color: '#8fe8ff',
+                        textDecoration: 'underline',
+                        fontWeight: 700,
+                    }}
+                >
+                    ← Back to Lotto Home
+                </Link>
                 <MetamaskHero ui={ui} pill="MetaMask Mode" title="EOA Transaction Workspace">
                     <p style={ui.subtitle}>
                         Connect your wallet from the top button, then continue with the standard EOA transaction flow.

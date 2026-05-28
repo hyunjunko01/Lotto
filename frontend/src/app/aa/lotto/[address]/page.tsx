@@ -15,8 +15,8 @@ export default function AALottoJoinDetailPage() {
         return (
             <main style={ui.pageMain}>
                 <div style={ui.container}>
-                    <Link href="/aa/join-lottery" style={{ color: '#8fe8ff', textDecoration: 'underline' }}>
-                        Back to instances
+                    <Link href="/aa/join-lottery" style={{ display: 'inline-flex', color: '#8fe8ff', textDecoration: 'underline', fontWeight: 700 }}>
+                        ← Back to instances
                     </Link>
                     <p style={{ marginTop: 16, ...ui.warningText }}>Invalid lotto address.</p>
                 </div>
@@ -27,8 +27,17 @@ export default function AALottoJoinDetailPage() {
     return (
         <main style={ui.pageMain}>
             <div style={ui.container}>
-                <Link href="/aa/join-lottery" style={{ color: '#8fe8ff', textDecoration: 'underline' }}>
-                    Back to instances
+                <Link
+                    href="/aa/join-lottery"
+                    style={{
+                        display: 'inline-flex',
+                        marginBottom: 14,
+                        color: '#8fe8ff',
+                        textDecoration: 'underline',
+                        fontWeight: 700,
+                    }}
+                >
+                    ← Back to instances
                 </Link>
 
                 <LottoDetailHeaderSection ui={ui} d={d} />

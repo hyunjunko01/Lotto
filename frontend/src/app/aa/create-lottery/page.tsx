@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { isAddress } from 'viem';
 import { AALotteryWorkspace } from '@/components/aa/workspace/AALotteryWorkspace';
 import { AAHero } from '@/components/aa/layout/AAHero';
@@ -24,6 +25,18 @@ export default function AACreateLotteryPage() {
   return (
     <main style={ui.pageMain}>
       <div style={ui.container}>
+        <Link
+          href="/aa"
+          style={{
+            display: 'inline-flex',
+            marginBottom: 14,
+            color: '#8fe8ff',
+            textDecoration: 'underline',
+            fontWeight: 700,
+          }}
+        >
+          ← Back to AA Home
+        </Link>
         <AAHero ui={ui} pill="Web3Auth AA Create" title="Create Lottery with AA">
           <p style={ui.subtitle}>The `createAccount` initCode is auto-filled, and this flow only executes `createLotto`.</p>
           <p style={{ marginTop: 10, color: '#d4eaee', wordBreak: 'break-all' }}>

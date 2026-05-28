@@ -10,6 +10,7 @@ import {
     type Hex,
 } from 'viem';
 import type { IProvider } from '@web3auth/base';
+import { refreshAAHeaderLetBalance } from '@/hooks/aa/workspace/account/aaHeaderStatus';
 import { buildJoinActionCallData } from '@/lib/aa/call-data';
 import { joinActionAllowedByState } from '@/lib/aa/join/actionGuards';
 import { findLottoSummary } from '@/lib/aa/join/lottoSummary';
@@ -394,6 +395,7 @@ export function useAAUserOpSignSend({
                 : '';
             setStatus(`UserOperation included on-chain.${txHint}`);
             await fetchLetBalance();
+            await refreshAAHeaderLetBalance();
             if (mode === 'join') {
                 await fetchJoinAllowance();
             }
@@ -614,6 +616,7 @@ export function useAAUserOpSignSend({
             const txHint = receipt.transactionHash ? ` Tx: ${receipt.transactionHash.slice(0, 10)}…` : '';
             setStatus(`UserOperation included on-chain.${txHint}`);
             await fetchLetBalance();
+            await refreshAAHeaderLetBalance();
             if (mode === 'join') {
                 await fetchJoinAllowance();
             }

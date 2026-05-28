@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { createWalletClient, custom, isAddress } from 'viem';
+import { refreshAAHeaderStatus, resetAAHeaderStatus } from '@/hooks/aa/workspace/account/aaHeaderStatus';
 import { useAAAccount } from '@/hooks/aa/workspace/account/useAAAccount';
 import { useAASession } from '@/hooks/aa/workspace/account/useAASession';
 import { useAALottoInstances } from '@/hooks/aa/workspace/reads/useAALottoInstances';
@@ -282,6 +283,7 @@ export function useAALottery({
 
             setStatus('Loading AA account...');
             await hydrateAAAccount(connectedAddress);
+            await refreshAAHeaderStatus(connectedAddress);
             setStatus('Web3Auth login and AA account connection completed.');
         } catch (error) {
             const message = error instanceof Error ? error.message : 'Web3Auth login failed.';
@@ -301,6 +303,7 @@ export function useAALottery({
             setIsLoading(true);
             setStatus('Refreshing AA account state...');
             await hydrateAAAccount(session.sessionToken);
+            await refreshAAHeaderStatus(session.sessionToken);
             setStatus('AA account state refreshed.');
         } catch (error) {
             const message = error instanceof Error ? error.message : 'Failed to refresh account.';
@@ -312,6 +315,7 @@ export function useAALottery({
 
     const handleLogout = useCallback(() => {
         session.clearSession();
+        resetAAHeaderStatus();
         account.resetAAAccount();
         draft.resetUserOpDraft();
         signSend.resetSignSend();

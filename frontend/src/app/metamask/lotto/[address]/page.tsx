@@ -18,8 +18,11 @@ export default function LottoInstancePage() {
         return (
             <main style={ui.pageMain}>
                 <div style={ui.container}>
-                    <Link href="/metamask/join-lottery" style={{ color: '#8fe8ff', textDecoration: 'underline' }}>
-                        Back to instances
+                    <Link
+                        href="/metamask/join-lottery"
+                        style={{ display: 'inline-flex', color: '#8fe8ff', textDecoration: 'underline', fontWeight: 700 }}
+                    >
+                        ← Back to instances
                     </Link>
                     <p style={{ marginTop: 16, ...ui.errorBox }}>Invalid lotto address.</p>
                 </div>
@@ -30,8 +33,17 @@ export default function LottoInstancePage() {
     return (
         <main style={ui.pageMain}>
             <div style={ui.container}>
-                <Link href="/metamask/join-lottery" style={{ color: '#8fe8ff', textDecoration: 'underline' }}>
-                    Back to instances
+                <Link
+                    href="/metamask/join-lottery"
+                    style={{
+                        display: 'inline-flex',
+                        marginBottom: 14,
+                        color: '#8fe8ff',
+                        textDecoration: 'underline',
+                        fontWeight: 700,
+                    }}
+                >
+                    ← Back to instances
                 </Link>
 
                 <LottoDetailHeaderSection ui={ui} t={t} d={d} />

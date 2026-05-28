@@ -1,10 +1,14 @@
 'use client';
 
-import { useMemo, useState } from 'react';
-import Link from 'next/link';
+import { useEffect, useMemo, useState } from 'react';
 import { usePathname } from 'next/navigation';
-import { createWalletClient, custom, isAddress } from 'viem';
+import { createWalletClient, custom, formatEther, isAddress } from 'viem';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
+import {
+    refreshAAHeaderStatus,
+    resetAAHeaderStatus,
+    useAAHeaderStatus,
+} from '@/hooks/aa/workspace/account/aaHeaderStatus';
 import { useAASession } from '@/hooks/aa/workspace/account/useAASession';
 import { connectWeb3Auth } from '@/lib/web3auth';
 import { targetChain } from '@/lib/targetNetwork';
@@ -16,23 +20,17 @@ export function AppHeader() {
     const isAaRoute = pathname.startsWith('/aa');
     const isMetamaskRoute = pathname.startsWith('/metamask');
     const aaSession = useAASession();
+    const aaHeader = useAAHeaderStatus();
     const [isAAAuthLoading, setIsAAAuthLoading] = useState(false);
 
-    const aaConnectedAddress = useMemo(() => {
+    const ownerAddress = useMemo(() => {
         if (!isAddress(aaSession.sessionToken)) {
             return '';
         }
         return aaSession.sessionToken;
     }, [aaSession.sessionToken]);
     const hasAAProvider = Boolean(aaSession.web3Provider);
-    const isAAConnected = Boolean(aaConnectedAddress) && hasAAProvider;
-
-    const linkStyle = {
-        color: '#cfe9ee',
-        textDecoration: 'none',
-        fontWeight: 700,
-        letterSpacing: 0.2,
-    } as const;
+    const isAAConnected = Boolean(ownerAddress) && hasAAProvider;
 
     const aaButtonStyle = {
         padding: '8px 12px',
@@ -40,10 +38,22 @@ export function AppHeader() {
         border: '1px solid #5d7980',
         background: '#13242a',
         color: '#d9eef1',
-        cursor: isAAAuthLoading ? 'not-allowed' : 'pointer',
-        opacity: isAAAuthLoading ? 0.6 : 1,
+        cursor: isAAAuthLoading || aaHeader.isRefreshing ? 'not-allowed' : 'pointer',
+        opacity: isAAAuthLoading || aaHeader.isRefreshing ? 0.6 : 1,
         fontWeight: 700,
     } as const;
+
+    useEffect(() => {
+        if (!isAaRoute || !isAAConnected || !ownerAddress) {
+            resetAAHeaderStatus();
+            return;
+        }
+
+        void refreshAAHeaderStatus(ownerAddress);
+    }, [isAaRoute, isAAConnected, ownerAddress]);
+
+    const letBalanceLabel =
+        aaHeader.letBalance !== null ? `${formatEther(aaHeader.letBalance)} LET` : aaHeader.isRefreshing ? '...' : '-';
 
     const handleAALogin = async () => {
         try {
@@ -61,6 +71,7 @@ export function AppHeader() {
             }
             aaSession.persistSession(connectedAddress);
             aaSession.setEmail('');
+            await refreshAAHeaderStatus(connectedAddress);
         } catch (error) {
             console.error('Web3Auth login failed from header:', error);
         } finally {
@@ -68,12 +79,70 @@ export function AppHeader() {
         }
     };
 
+    const handleAARefresh = () => {
+        if (!ownerAddress || aaHeader.isRefreshing) {
+            return;
+        }
+        void refreshAAHeaderStatus(ownerAddress);
+    };
+
     const handleAALogout = () => {
         if (isAAAuthLoading) return;
         aaSession.clearSession();
+        resetAAHeaderStatus();
     };
 
     if (isRootRoute) {
+        return null;
+    }
+
+    const headerContent = isAaRoute ? (
+        isAAConnected ? (
+            <div
+                style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 10,
+                    flexWrap: 'wrap',
+                }}
+            >
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
+                    <span style={{ color: '#8aa5a9', fontSize: '0.72rem', letterSpacing: 0.3 }}>AA Account</span>
+                    <span style={{ color: '#d4eaee', fontSize: '0.9rem' }}>
+                        {aaHeader.accountAddress
+                            ? `${aaHeader.accountAddress.slice(0, 6)}...${aaHeader.accountAddress.slice(-4)}`
+                            : aaHeader.isRefreshing
+                              ? 'Loading...'
+                              : '-'}
+                    </span>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <span style={{ color: '#8aa5a9', fontSize: '0.72rem', letterSpacing: 0.3 }}>Balance</span>
+                    <span style={{ color: '#b8cdcf', fontSize: '0.9rem' }}>{letBalanceLabel}</span>
+                </div>
+                <button
+                    type="button"
+                    onClick={handleAARefresh}
+                    disabled={isAAAuthLoading || aaHeader.isRefreshing}
+                    style={aaButtonStyle}
+                >
+                    {aaHeader.isRefreshing ? 'Refreshing...' : 'Refresh'}
+                </button>
+                <button type="button" onClick={handleAALogout} disabled={isAAAuthLoading} style={aaButtonStyle}>
+                    Log out
+                </button>
+            </div>
+        ) : (
+            <button type="button" onClick={() => void handleAALogin()} disabled={isAAAuthLoading} style={aaButtonStyle}>
+                {isAAAuthLoading ? 'Connecting...' : ownerAddress ? 'Reconnect Web3Auth' : 'Log in with Web3Auth'}
+            </button>
+        )
+    ) : isMetamaskRoute ? (
+        <ConnectButton />
+    ) : null;
+
+    if (!headerContent) {
         return null;
     }
 
@@ -95,78 +164,18 @@ export function AppHeader() {
                     padding: '12px 16px',
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'space-between',
+                    justifyContent: 'center',
                     gap: 16,
                     flexWrap: 'wrap',
                 }}
             >
-                {isAaRoute ? (
-                    <>
-                        <nav style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                            <Link href="/" style={linkStyle}>
-                                Home
-                            </Link>
-                            <Link href="/aa" style={linkStyle}>
-                                Web3Auth AA
-                            </Link>
-                            <Link href="/aa/create-lottery" style={linkStyle}>
-                                Create
-                            </Link>
-                            <Link href="/aa/join-lottery" style={linkStyle}>
-                                Join
-                            </Link>
-                        </nav>
-                        {isAAConnected ? (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                <span style={{ color: '#b8cdcf', fontSize: '0.9rem' }}>
-                                    {aaConnectedAddress.slice(0, 6)}...{aaConnectedAddress.slice(-4)}
-                                </span>
-                                <button type="button" onClick={handleAALogout} disabled={isAAAuthLoading} style={aaButtonStyle}>
-                                    Log out
-                                </button>
-                            </div>
-                        ) : (
-                            <button type="button" onClick={() => void handleAALogin()} disabled={isAAAuthLoading} style={aaButtonStyle}>
-                                {isAAAuthLoading
-                                    ? 'Connecting...'
-                                    : aaConnectedAddress
-                                        ? 'Reconnect Web3Auth'
-                                        : 'Log in with Web3Auth'}
-                            </button>
-                        )}
-                    </>
-                ) : isMetamaskRoute ? (
-                    <>
-                        <nav style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                            <Link href="/" style={linkStyle}>
-                                Home
-                            </Link>
-                            <Link href="/metamask" style={linkStyle}>
-                                MetaMask Home
-                            </Link>
-                            <Link href="/metamask/create-lottery" style={linkStyle}>
-                                Create
-                            </Link>
-                            <Link href="/metamask/join-lottery" style={linkStyle}>
-                                Join
-                            </Link>
-                        </nav>
-                        <ConnectButton />
-                    </>
-                ) : (
-                    <nav style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                        <Link href="/" style={linkStyle}>
-                            Home
-                        </Link>
-                        <Link href="/aa" style={linkStyle}>
-                            Web3Auth AA
-                        </Link>
-                        <Link href="/metamask" style={linkStyle}>
-                            MetaMask
-                        </Link>
-                    </nav>
-                )}
+                {headerContent}
             </div>
+            {isAaRoute && aaHeader.error ? (
+                <p style={{ margin: 0, padding: '0 16px 10px', textAlign: 'center', color: '#f3b2b2', fontSize: '0.82rem' }}>
+                    {aaHeader.error}
+                </p>
+            ) : null}
         </header>
     );
 }

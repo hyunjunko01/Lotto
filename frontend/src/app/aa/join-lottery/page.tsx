@@ -31,6 +31,18 @@ export default function AAJoinLotteryPage() {
   return (
     <main style={ui.pageMain}>
       <div style={ui.container}>
+        <Link
+          href="/aa"
+          style={{
+            display: 'inline-flex',
+            marginBottom: 14,
+            color: '#8fe8ff',
+            textDecoration: 'underline',
+            fontWeight: 700,
+          }}
+        >
+          ← Back to AA Home
+        </Link>
         <AAHero ui={ui} pill="Web3Auth AA Join" title="Join Lottery with AA">
           <p style={ui.subtitle}>Select an instance, then build and send UserOps from the detail page.</p>
           <p style={{ marginTop: 10, color: '#d4eaee', wordBreak: 'break-all' }}>Target LottoFactory: {lottoFactoryAddressText}</p>
