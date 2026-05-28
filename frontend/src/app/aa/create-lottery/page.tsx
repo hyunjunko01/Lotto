@@ -1,12 +1,13 @@
 'use client';
-import { useState } from 'react';
 import Link from 'next/link';
 import { isAddress } from 'viem';
 import { AALotteryWorkspace } from '@/components/aa/workspace/AALotteryWorkspace';
 import { AAHero } from '@/components/aa/layout/AAHero';
+import { AAHeroLotteryAddress } from '@/components/aa/layout/AAHeroLotteryAddress';
 import { AASection } from '@/components/aa/layout/AASection';
 import { useAAUi } from '@/components/aa/layout/useAAUi';
-import styles from './page.module.css';
+import heroStyles from '@/components/aa/layout/aaHeroContent.module.css';
+import flowLayout from '@/components/aa/layout/aaFlowLayout.module.css';
 
 const LOTTO_FACTORY_ADDRESS = process.env.NEXT_PUBLIC_LOTTO_FACTORY_ADDRESS;
 const ACCOUNT_FACTORY_ADDRESS = process.env.NEXT_PUBLIC_ACCOUNT_FACTORY_ADDRESS;
@@ -14,7 +15,6 @@ const ENTRY_TOKEN_ADDRESS = process.env.NEXT_PUBLIC_ENTRY_TOKEN_ADDRESS;
 
 export default function AACreateLotteryPage() {
   const ui = useAAUi();
-  const [copyFeedback, setCopyFeedback] = useState('');
 
   const hasValidFactoryConfig =
     typeof LOTTO_FACTORY_ADDRESS === 'string' &&
@@ -24,44 +24,18 @@ export default function AACreateLotteryPage() {
     isAddress(ACCOUNT_FACTORY_ADDRESS) &&
     isAddress(ENTRY_TOKEN_ADDRESS);
 
-  const handleCopyAddress = async () => {
-    if (!LOTTO_FACTORY_ADDRESS) return;
-    try {
-      await navigator.clipboard.writeText(LOTTO_FACTORY_ADDRESS);
-      setCopyFeedback('COPIED');
-      setTimeout(() => setCopyFeedback(''), 1200);
-    } catch {
-      setCopyFeedback('FAILED');
-      setTimeout(() => setCopyFeedback(''), 1200);
-    }
-  };
-
   return (
-    <main style={ui.pageMain}>
-      <div style={ui.container}>
-        <Link
-          href="/aa"
-          className={styles.backLink}
-        >
-          ← Back to AA Home
-        </Link>
-        <AAHero ui={ui} pill="AA Create" title="Create Lottery">
-          <p className={styles.subtitle}>Set your lottery values and create in one flow.</p>
-          <div className={styles.addressRow}>
-            <span className={styles.addressText}>
-              Lottery Address: {LOTTO_FACTORY_ADDRESS ?? '(missing NEXT_PUBLIC_LOTTO_FACTORY_ADDRESS)'}
-            </span>
-            {LOTTO_FACTORY_ADDRESS ? (
-              <button
-                type="button"
-                onClick={() => void handleCopyAddress()}
-                className={styles.copyButton}
-              >
-                {copyFeedback || 'COPY'}
-              </button>
-            ) : null}
-          </div>
-        </AAHero>
+    <main style={ui.pageMain} className={flowLayout.pageMain}>
+      <div style={ui.container} className={flowLayout.container}>
+        <div className={flowLayout.heroStack}>
+          <Link href="/aa" className={flowLayout.backLink}>
+            ← Back to AA Home
+          </Link>
+          <AAHero ui={ui} pill="AA Create" title="Create Lottery" className={flowLayout.hero}>
+            <p className={heroStyles.subtitle}>Set lottery values and create in one flow.</p>
+            <AAHeroLotteryAddress address={LOTTO_FACTORY_ADDRESS} />
+          </AAHero>
+        </div>
 
         {!hasValidFactoryConfig ? (
           <AASection ui={ui} style={ui.errorBox}>

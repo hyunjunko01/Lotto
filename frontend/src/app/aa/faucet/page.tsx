@@ -6,6 +6,7 @@ import { AALotteryWorkspace } from '@/components/aa/workspace/AALotteryWorkspace
 import { AAHero } from '@/components/aa/layout/AAHero';
 import { AASection } from '@/components/aa/layout/AASection';
 import { useAAUi } from '@/components/aa/layout/useAAUi';
+import flowLayout from '@/components/aa/layout/aaFlowLayout.module.css';
 import styles from './page.module.css';
 
 const ENTRY_TOKEN_ADDRESS = process.env.NEXT_PUBLIC_ENTRY_TOKEN_ADDRESS;
@@ -24,20 +25,19 @@ export default function AAFaucetPage() {
     isAddress(LOTTO_FACTORY_ADDRESS);
 
   return (
-    <main style={ui.pageMain}>
-      <div style={ui.container}>
-        <Link
-          href="/aa"
-          className={styles.backLink}
-        >
-          ← Back to AA Home
-        </Link>
-        <AAHero ui={ui} pill="Web3Auth AA Faucet" title="Charge Entry Tokens (AA)">
+    <main style={ui.pageMain} className={flowLayout.pageMain}>
+      <div style={ui.container} className={flowLayout.container}>
+        <div className={flowLayout.heroStack}>
+          <Link href="/aa" className={flowLayout.backLink}>
+            ← Back to AA Home
+          </Link>
+          <AAHero ui={ui} pill="Web3Auth AA Faucet" title="Charge Entry Tokens (AA)" className={flowLayout.hero}>
           <p style={ui.subtitle}>Your AA account calls `claimTestTokens()` via a UserOp.</p>
           <p className={styles.metaRow}>
             Entry Token: {ENTRY_TOKEN_ADDRESS ?? '(missing NEXT_PUBLIC_ENTRY_TOKEN_ADDRESS)'}
           </p>
-        </AAHero>
+          </AAHero>
+        </div>
 
         {!hasValidConfig ? (
           <AASection ui={ui} style={ui.errorBox}>
