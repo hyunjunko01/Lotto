@@ -38,7 +38,7 @@ export function useAALottery({
     const session = useAASession();
     const account = useAAAccount();
 
-    const [entryFeeEth, setEntryFeeEth] = useState('0.01');
+    const [entryFeeEth, setEntryFeeEth] = useState('10');
     const [maxPlayers, setMaxPlayers] = useState('5');
     const [joinValueEth, setJoinValueEth] = useState('0.01');
     const [joinTargetAddress, setJoinTargetAddress] = useState(initialJoinTargetAddress ?? '');
@@ -321,7 +321,7 @@ export function useAALottery({
         signSend.resetSignSend();
         tokenReads.resetTokenReads();
         lottoReads.resetLottoInstances();
-        setEntryFeeEth('0.01');
+        setEntryFeeEth('10');
         setMaxPlayers('5');
         setJoinValueEth('0.01');
         setJoinTargetAddress('');

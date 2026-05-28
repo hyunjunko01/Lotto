@@ -4,9 +4,10 @@ import { useState } from 'react';
 import type { AAGasEstimateMode, AALotteryMode } from '@/lib/aa/types';
 import { useAALottery } from '@/hooks/aa/workspace/useAALottery';
 import { AccountStatusSection } from '@/components/aa/sections/AccountStatusSection';
-import { LottoParamsSection } from '@/components/aa/sections/LottoParamsSection';
-import { ActionButtonsSection } from '@/components/aa/sections/ActionButtonsSection';
 import { JoinInstanceListSection } from '@/components/aa/sections/JoinInstanceListSection';
+import { CreateModePanel } from '@/components/aa/workspace/modes/CreateModePanel';
+import { JoinModePanel } from '@/components/aa/workspace/modes/JoinModePanel';
+import { FaucetModePanel } from '@/components/aa/workspace/modes/FaucetModePanel';
 import styles from './AALotteryWorkspace.module.css';
 
 type Props = {
@@ -93,8 +94,8 @@ export function AALotteryWorkspace({
         mode === 'create'
             ? 'Create Lottery'
             : mode === 'join'
-              ? 'Execute Join Action'
-              : 'Request Faucet Tokens';
+                ? 'Execute Join Action'
+                : 'Request Faucet Tokens';
     const actionCardTitle = mode === 'create' ? 'Create Lottery Action' : 'Token Faucet Action';
     const actionCardDescription =
         mode === 'create'
@@ -142,11 +143,11 @@ export function AALotteryWorkspace({
             ) : null}
 
             {mode !== 'faucet' &&
-            gasEstimateMode !== 'manual' &&
-            gasBlocksSignSend &&
-            !gasEstimateError &&
-            AAAccountHydrated &&
-            sessionToken ? (
+                gasEstimateMode !== 'manual' &&
+                gasBlocksSignSend &&
+                !gasEstimateError &&
+                AAAccountHydrated &&
+                sessionToken ? (
                 <div className={`${styles.warning} ${styles.warningInfo}`}>
                     {isEstimatingGas
                         ? 'Estimating UserOp gas from the bundler…'
@@ -165,9 +166,8 @@ export function AALotteryWorkspace({
                 />
             ) : null}
 
-            {mode === 'create' || mode === 'join' ? (
-                <LottoParamsSection
-                    mode={mode}
+            {mode === 'create' ? (
+                <CreateModePanel
                     entryFeeEth={entryFeeEth}
                     setEntryFeeEth={setEntryFeeEth}
                     maxPlayers={maxPlayers}
@@ -176,62 +176,57 @@ export function AALotteryWorkspace({
                     setJoinTargetAddress={setJoinTargetAddress}
                     joinValueEth={joinValueEth}
                     setJoinValueEth={setJoinValueEth}
-                />
-            ) : null}
-
-            <div className={styles.actionCard}>
-                <h3 className={styles.actionCardTitle}>{actionCardTitle}</h3>
-                <p className={styles.actionCardDescription}>{actionCardDescription}</p>
-                <ActionButtonsSection
                     onExecute={() => void handleExecuteUserOp()}
                     isLoading={isLoading}
                     executeDisabled={executeDisabled}
-                    label={executeLabel}
+                    executeLabel={executeLabel}
+                    showUserOpSettings={showUserOpSettings}
+                    onToggleUserOpSettings={() => setShowUserOpSettings((prev) => !prev)}
+                    signResultHash={signResultHash}
+                    bundlerResultHash={bundlerResultHash}
+                    userOp={userOp}
                 />
-                <button
-                    type="button"
-                    onClick={() => setShowUserOpSettings((prev) => !prev)}
-                    className={styles.toggleButton}
-                >
-                    {showUserOpSettings ? '▼ Hide Auto UserOp Values' : '▶ View Auto UserOp Values'}
-                </button>
+            ) : null}
 
-                {showUserOpSettings ? (
-                    <div className={styles.userOpPanel}>
-                        <p className={styles.userOpText}>
-                            <strong>sign userOpHash:</strong> {signResultHash || '-'}
-                        </p>
-                        <p className={styles.userOpText}>
-                            <strong>send userOpHash:</strong> {bundlerResultHash || '-'}
-                        </p>
-                        <p className={styles.userOpText}>
-                            <strong>sender:</strong> {userOp.sender || '-'}
-                        </p>
-                        <p className={styles.userOpText}>
-                            <strong>nonce:</strong> {userOp.nonce}
-                        </p>
-                        <p className={styles.userOpText}>
-                            <strong>initCode:</strong> {userOp.initCode}
-                        </p>
-                        <p className={styles.userOpText}>
-                            <strong>callData:</strong> {userOp.callData}
-                        </p>
-                        <p className={styles.userOpText}>
-                            <strong>accountGasLimits:</strong> {userOp.accountGasLimits}
-                        </p>
-                        <p className={styles.userOpText}>
-                            <strong>preVerificationGas:</strong> {userOp.preVerificationGas}
-                        </p>
-                        <p className={styles.userOpText}>
-                            <strong>gasFees:</strong> {userOp.gasFees}
-                        </p>
-                        <p className={styles.userOpText}>
-                            <strong>paymasterAndData:</strong> {userOp.paymasterAndData}
-                        </p>
-                    </div>
-                ) : null}
+            {mode === 'join' ? (
+                <JoinModePanel
+                    actionCardTitle={actionCardTitle}
+                    actionCardDescription={actionCardDescription}
+                    entryFeeEth={entryFeeEth}
+                    setEntryFeeEth={setEntryFeeEth}
+                    maxPlayers={maxPlayers}
+                    setMaxPlayers={setMaxPlayers}
+                    joinTargetAddress={joinTargetAddress}
+                    setJoinTargetAddress={setJoinTargetAddress}
+                    joinValueEth={joinValueEth}
+                    setJoinValueEth={setJoinValueEth}
+                    onExecute={() => void handleExecuteUserOp()}
+                    isLoading={isLoading}
+                    executeDisabled={executeDisabled}
+                    executeLabel={executeLabel}
+                    showUserOpSettings={showUserOpSettings}
+                    onToggleUserOpSettings={() => setShowUserOpSettings((prev) => !prev)}
+                    signResultHash={signResultHash}
+                    bundlerResultHash={bundlerResultHash}
+                    userOp={userOp}
+                />
+            ) : null}
 
-            </div>
+            {mode === 'faucet' ? (
+                <FaucetModePanel
+                    actionCardTitle={actionCardTitle}
+                    actionCardDescription={actionCardDescription}
+                    onExecute={() => void handleExecuteUserOp()}
+                    isLoading={isLoading}
+                    executeDisabled={executeDisabled}
+                    executeLabel={executeLabel}
+                    showUserOpSettings={showUserOpSettings}
+                    onToggleUserOpSettings={() => setShowUserOpSettings((prev) => !prev)}
+                    signResultHash={signResultHash}
+                    bundlerResultHash={bundlerResultHash}
+                    userOp={userOp}
+                />
+            ) : null}
         </section>
     );
 }

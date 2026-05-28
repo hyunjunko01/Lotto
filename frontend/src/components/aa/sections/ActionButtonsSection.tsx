@@ -5,6 +5,9 @@ interface ActionButtonsSectionProps {
     isLoading: boolean;
     executeDisabled?: boolean;
     label?: string;
+    tone?: 'default' | 'neon-green';
+    marginTop?: number;
+    compact?: boolean;
 }
 
 export function ActionButtonsSection({
@@ -12,25 +15,32 @@ export function ActionButtonsSection({
     isLoading,
     executeDisabled = false,
     label = 'Execute UserOp',
+    tone = 'default',
+    marginTop = 16,
+    compact = false,
 }: ActionButtonsSectionProps) {
     const isDisabled = isLoading || executeDisabled;
+    const isNeonGreen = tone === 'neon-green';
     return (
-        <div style={{ marginTop: 16, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <div style={{ marginTop, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <button
                 onClick={onExecute}
                 disabled={isDisabled}
                 style={{
                     width: '100%',
                     minWidth: 120,
-                    padding: '12px',
+                    padding: compact ? '9px 8px' : '12px',
                     borderRadius: 12,
-                    border: '1px solid #4a9d5f',
-                    background: '#1a3a2a',
-                    color: '#b8e6c4',
+                    border: isNeonGreen ? '1px solid #65ff9a' : '1px solid #4a9d5f',
+                    background: '#000000',
+                    color: isNeonGreen ? '#b6ffc9' : '#b8e6c4',
+                    boxShadow: isNeonGreen
+                        ? '0 0 11px rgba(101, 255, 154, 0.48), inset 0 0 11px rgba(101, 255, 154, 0.2)'
+                        : 'none',
                     cursor: isDisabled ? 'not-allowed' : 'pointer',
                     opacity: isDisabled ? 0.6 : 1,
                     fontWeight: 600,
-                    fontSize: '1rem',
+                    fontSize: compact ? '0.92rem' : '1rem',
                 }}
             >
                 {label}

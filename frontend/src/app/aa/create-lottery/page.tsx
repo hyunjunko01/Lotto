@@ -28,10 +28,10 @@ export default function AACreateLotteryPage() {
     if (!LOTTO_FACTORY_ADDRESS) return;
     try {
       await navigator.clipboard.writeText(LOTTO_FACTORY_ADDRESS);
-      setCopyFeedback('Copied');
+      setCopyFeedback('COPIED');
       setTimeout(() => setCopyFeedback(''), 1200);
     } catch {
-      setCopyFeedback('Failed');
+      setCopyFeedback('FAILED');
       setTimeout(() => setCopyFeedback(''), 1200);
     }
   };
@@ -57,7 +57,7 @@ export default function AACreateLotteryPage() {
                 onClick={() => void handleCopyAddress()}
                 className={styles.copyButton}
               >
-                {copyFeedback || 'Copy'}
+                {copyFeedback || 'COPY'}
               </button>
             ) : null}
           </div>
@@ -73,7 +73,7 @@ export default function AACreateLotteryPage() {
             mode="create"
             gasEstimateMode="manual"
             title="Create Lottery Action"
-            subtitle="After login, execute create with your current inputs."
+            subtitle="When your AA account is ready, execute create."
             lottoFactoryAddress={LOTTO_FACTORY_ADDRESS}
             accountFactoryAddress={ACCOUNT_FACTORY_ADDRESS}
             entryTokenAddress={ENTRY_TOKEN_ADDRESS}
