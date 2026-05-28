@@ -1,10 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { useAAUi } from '@/components/aa/layout/useAAUi';
 import { LottoDetailAccountSection } from '@/components/aa/sections/LottoDetailAccountSection';
 import { LottoDetailActionCardsSection } from '@/components/aa/sections/LottoDetailActionCardsSection';
 import { LottoDetailHeaderSection } from '@/components/aa/sections/LottoDetailHeaderSection';
+import flowLayout from '@/components/aa/layout/aaFlowLayout.module.css';
+import { useAAUi } from '@/components/aa/layout/useAAUi';
 import { useAALottoDetailPage } from '@/hooks/aa/useAALottoDetailPage';
 
 export default function AALottoJoinDetailPage() {
@@ -13,9 +14,9 @@ export default function AALottoJoinDetailPage() {
 
     if (!d.lottoAddress) {
         return (
-            <main style={ui.pageMain}>
-                <div style={ui.container}>
-                    <Link href="/aa/join-lottery" style={{ display: 'inline-flex', color: '#8fe8ff', textDecoration: 'underline', fontWeight: 700 }}>
+            <main style={ui.pageMain} className={flowLayout.pageMain}>
+                <div style={ui.container} className={flowLayout.container}>
+                    <Link href="/aa/join-lottery" className={flowLayout.backLink}>
                         ← Back to instances
                     </Link>
                     <p style={{ marginTop: 16, ...ui.warningText }}>Invalid lotto address.</p>
@@ -25,18 +26,9 @@ export default function AALottoJoinDetailPage() {
     }
 
     return (
-        <main style={ui.pageMain}>
-            <div style={ui.container}>
-                <Link
-                    href="/aa/join-lottery"
-                    style={{
-                        display: 'inline-flex',
-                        marginBottom: 14,
-                        color: '#8fe8ff',
-                        textDecoration: 'underline',
-                        fontWeight: 700,
-                    }}
-                >
+        <main style={ui.pageMain} className={flowLayout.pageMain}>
+            <div style={ui.container} className={flowLayout.container}>
+                <Link href="/aa/join-lottery" className={flowLayout.backLink}>
                     ← Back to instances
                 </Link>
 

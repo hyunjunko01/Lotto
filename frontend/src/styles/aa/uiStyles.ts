@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react';
-import { AA_FONT_FAMILY } from './tokens';
+import { AA_FONT_FAMILY, aaTokens } from './tokens';
 
 export type AAUi = {
   pageMain: CSSProperties;
@@ -23,7 +23,7 @@ export function createAAUi(): AAUi {
       padding: '10px 16px 16px',
       background: '#000000',
       fontFamily: AA_FONT_FAMILY,
-      color: '#d8f7ff',
+      color: aaTokens.text,
       display: 'grid',
       alignItems: 'start',
     },
@@ -41,16 +41,16 @@ export function createAAUi(): AAUi {
     sectionFirst: {
       marginTop: 0,
       padding: 20,
-      border: '1px solid rgba(78, 226, 255, 0.28)',
+      border: aaTokens.sectionBorder,
       borderRadius: 14,
-      background: 'rgba(0, 0, 0, 0.62)',
+      background: aaTokens.sectionBackground,
     },
     section: {
       marginTop: 16,
       padding: 20,
       border: '1px solid rgba(78, 226, 255, 0.24)',
       borderRadius: 14,
-      background: 'rgba(0, 0, 0, 0.6)',
+      background: aaTokens.sectionBackground,
     },
     pill: {
       display: 'inline-block',
@@ -110,14 +110,12 @@ export function createAAUi(): AAUi {
       textTransform: 'uppercase',
       textDecoration: 'none',
     },
-    warningText: { color: '#ffc8b3' },
+    warningText: { color: aaTokens.warningText },
     errorBox: {
       marginTop: 16,
       padding: 16,
       borderRadius: 12,
-      border: '1px solid rgba(255, 137, 137, 0.45)',
-      background: 'rgba(56, 14, 14, 0.45)',
-      color: '#ffc2c2',
+      ...aaTokens.errorBox,
     },
   };
 }

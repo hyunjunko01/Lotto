@@ -1,17 +1,17 @@
 'use client';
 
 import { useState } from 'react';
-import type { AAGasEstimateMode, AALotteryMode } from '@/lib/aa/types';
+import type { AAGasEstimateMode } from '@/lib/aa/types';
 import { useAALottery } from '@/hooks/aa/workspace/useAALottery';
 import { AccountStatusSection } from '@/components/aa/sections/AccountStatusSection';
-import { JoinInstanceListSection } from '@/components/aa/sections/JoinInstanceListSection';
 import { CreateModePanel } from '@/components/aa/workspace/modes/CreateModePanel';
-import { JoinModePanel } from '@/components/aa/workspace/modes/JoinModePanel';
 import { FaucetModePanel } from '@/components/aa/workspace/modes/FaucetModePanel';
 import styles from './AALotteryWorkspace.module.css';
 
+type WorkspaceMode = 'create' | 'faucet';
+
 type Props = {
-    mode: AALotteryMode;
+    mode: WorkspaceMode;
     gasEstimateMode?: AAGasEstimateMode;
     title: string;
     subtitle: string;
@@ -55,29 +55,11 @@ export function AALotteryWorkspace({
         setJoinValueEth,
         joinTargetAddress,
         setJoinTargetAddress,
-        selectedJoinEntryFee,
-        selectedJoinAction,
-        lottoInstances,
-        isLoadingLottoInstances,
-        lottoInstancesError,
-        fetchLottoInstances,
-        handleSelectJoinTarget,
         handleExecuteUserOp,
     } = useAALottery({ mode, lottoFactoryAddress, accountFactoryAddress, entryTokenAddress, gasEstimateMode });
 
-    const mustRefreshAAAccount =
-        Boolean(sessionToken) && !AAAccountHydrated && !isLoading;
+    const mustRefreshAAAccount = Boolean(sessionToken) && !AAAccountHydrated && !isLoading;
     const createNeedsAccountRefreshWarning = mode === 'create' && mustRefreshAAAccount;
-
-    const insufficientLetForJoin =
-        mode === 'join' &&
-        AAAccountHydrated &&
-        letBalance !== null &&
-        selectedJoinEntryFee > BigInt(0) &&
-        letBalance < selectedJoinEntryFee;
-    const joinLetBlocksSign =
-        insufficientLetForJoin &&
-        (selectedJoinAction === 'approveEntryFee' || selectedJoinAction === 'joinLotto');
 
     const gasBlocksSignSend =
         Boolean(sessionToken) &&
@@ -85,22 +67,11 @@ export function AALotteryWorkspace({
         (!gasEstimateReady || isEstimatingGas || Boolean(gasEstimateError));
     const executeDisabled =
         mustRefreshAAAccount ||
-        joinLetBlocksSign ||
         !joinSignStateOk ||
         (mode !== 'faucet' && isEstimatingGas) ||
         !sessionToken ||
         !AAAccountHydrated;
-    const executeLabel =
-        mode === 'create'
-            ? 'Create Lottery'
-            : mode === 'join'
-                ? 'Execute Join Action'
-                : 'Request Faucet Tokens';
-    const actionCardTitle = mode === 'create' ? 'Create Lottery Action' : 'Token Faucet Action';
-    const actionCardDescription =
-        mode === 'create'
-            ? 'Execute this action to estimate gas, sign, and send a create-lottery UserOp with current inputs.'
-            : 'Execute this action to estimate gas, sign, and send a faucet UserOp from your AA account.';
+    const executeLabel = mode === 'create' ? 'Create Lottery' : 'Request Tokens';
 
     return (
         <section className={styles.workspace}>
@@ -115,8 +86,8 @@ export function AALotteryWorkspace({
                 letBalance={letBalance}
                 signResultHash={signResultHash}
                 bundlerResultHash={bundlerResultHash}
-                compact={mode === 'create'}
-                showUserOpHashes={mode !== 'create'}
+                compact
+                showUserOpHashes={false}
             />
 
             {createNeedsAccountRefreshWarning ? (
@@ -125,13 +96,6 @@ export function AALotteryWorkspace({
                     <strong className={styles.warningStrong}>Refresh Account State</strong> above before
                     signing or sending a UserOp to create a lottery. That loads your smart account address and nonce
                     from the server.
-                </div>
-            ) : null}
-
-            {insufficientLetForJoin ? (
-                <div className={`${styles.warning} ${styles.warningError}`}>
-                    Not enough LET on your AA account for this instance entry fee. Use the AA token faucet
-                    page first, then approve and join (same idea as MetaMask mode).
                 </div>
             ) : null}
 
@@ -155,17 +119,6 @@ export function AALotteryWorkspace({
                 </div>
             ) : null}
 
-            {mode === 'join' ? (
-                <JoinInstanceListSection
-                    lottoInstances={lottoInstances}
-                    isLoading={isLoadingLottoInstances}
-                    error={lottoInstancesError}
-                    selectedAddress={joinTargetAddress}
-                    onRefresh={() => void fetchLottoInstances()}
-                    onSelect={handleSelectJoinTarget}
-                />
-            ) : null}
-
             {mode === 'create' ? (
                 <CreateModePanel
                     entryFeeEth={entryFeeEth}
@@ -186,36 +139,8 @@ export function AALotteryWorkspace({
                     bundlerResultHash={bundlerResultHash}
                     userOp={userOp}
                 />
-            ) : null}
-
-            {mode === 'join' ? (
-                <JoinModePanel
-                    actionCardTitle={actionCardTitle}
-                    actionCardDescription={actionCardDescription}
-                    entryFeeEth={entryFeeEth}
-                    setEntryFeeEth={setEntryFeeEth}
-                    maxPlayers={maxPlayers}
-                    setMaxPlayers={setMaxPlayers}
-                    joinTargetAddress={joinTargetAddress}
-                    setJoinTargetAddress={setJoinTargetAddress}
-                    joinValueEth={joinValueEth}
-                    setJoinValueEth={setJoinValueEth}
-                    onExecute={() => void handleExecuteUserOp()}
-                    isLoading={isLoading}
-                    executeDisabled={executeDisabled}
-                    executeLabel={executeLabel}
-                    showUserOpSettings={showUserOpSettings}
-                    onToggleUserOpSettings={() => setShowUserOpSettings((prev) => !prev)}
-                    signResultHash={signResultHash}
-                    bundlerResultHash={bundlerResultHash}
-                    userOp={userOp}
-                />
-            ) : null}
-
-            {mode === 'faucet' ? (
+            ) : (
                 <FaucetModePanel
-                    actionCardTitle={actionCardTitle}
-                    actionCardDescription={actionCardDescription}
                     onExecute={() => void handleExecuteUserOp()}
                     isLoading={isLoading}
                     executeDisabled={executeDisabled}
@@ -226,7 +151,7 @@ export function AALotteryWorkspace({
                     bundlerResultHash={bundlerResultHash}
                     userOp={userOp}
                 />
-            ) : null}
+            )}
         </section>
     );
 }

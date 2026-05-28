@@ -3,6 +3,7 @@
 import { ActionButtonsSection } from '@/components/aa/sections/ActionButtonsSection';
 import { LottoParamsSection } from '@/components/aa/sections/LottoParamsSection';
 import { UserOpDetailsPanel } from '@/components/aa/workspace/common/UserOpDetailsPanel';
+import sharedStyles from '@/components/aa/workspace/aaWorkspaceShared.module.css';
 import styles from '@/components/aa/workspace/AALotteryWorkspace.create.module.css';
 
 type UserOpLike = {
@@ -56,7 +57,7 @@ export function CreateModePanel({
     userOp,
 }: Props) {
     return (
-        <div className={styles.createActionGroup}>
+        <div className={sharedStyles.pinkActionCard}>
             <div className={styles.createParamsCard}>
                 <LottoParamsSection
                     mode="create"
@@ -84,7 +85,7 @@ export function CreateModePanel({
                 <button
                     type="button"
                     onClick={onToggleUserOpSettings}
-                    className={styles.toggleButton}
+                    className={sharedStyles.toggleButton}
                 >
                     {showUserOpSettings ? '▼ Hide Auto UserOp Values' : '▶ View Auto UserOp Values'}
                 </button>
@@ -93,8 +94,8 @@ export function CreateModePanel({
                         signResultHash={signResultHash}
                         bundlerResultHash={bundlerResultHash}
                         userOp={userOp}
-                        panelClassName={styles.userOpPanel}
-                        textClassName={styles.userOpText}
+                        panelClassName={sharedStyles.userOpPanel}
+                        textClassName={sharedStyles.userOpText}
                     />
                 ) : null}
             </div>

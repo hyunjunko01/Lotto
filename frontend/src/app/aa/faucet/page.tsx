@@ -1,61 +1,45 @@
 'use client';
 
-import Link from 'next/link';
-import { isAddress } from 'viem';
 import { AALotteryWorkspace } from '@/components/aa/workspace/AALotteryWorkspace';
+import { AAConfigErrorSection } from '@/components/aa/layout/AAConfigErrorSection';
+import { AAFlowPage } from '@/components/aa/layout/AAFlowPage';
 import { AAHero } from '@/components/aa/layout/AAHero';
-import { AASection } from '@/components/aa/layout/AASection';
+import { AAHeroLotteryAddress } from '@/components/aa/layout/AAHeroLotteryAddress';
 import { useAAUi } from '@/components/aa/layout/useAAUi';
+import heroStyles from '@/components/aa/layout/aaHeroContent.module.css';
 import flowLayout from '@/components/aa/layout/aaFlowLayout.module.css';
-import styles from './page.module.css';
-
-const ENTRY_TOKEN_ADDRESS = process.env.NEXT_PUBLIC_ENTRY_TOKEN_ADDRESS;
-const ACCOUNT_FACTORY_ADDRESS = process.env.NEXT_PUBLIC_ACCOUNT_FACTORY_ADDRESS;
-const LOTTO_FACTORY_ADDRESS = process.env.NEXT_PUBLIC_LOTTO_FACTORY_ADDRESS;
+import { AA_FACTORY_ENV_ERROR, readAAFactoryEnv } from '@/lib/aa/env';
 
 export default function AAFaucetPage() {
   const ui = useAAUi();
-
-  const hasValidConfig =
-    typeof ENTRY_TOKEN_ADDRESS === 'string' &&
-    isAddress(ENTRY_TOKEN_ADDRESS) &&
-    typeof ACCOUNT_FACTORY_ADDRESS === 'string' &&
-    isAddress(ACCOUNT_FACTORY_ADDRESS) &&
-    typeof LOTTO_FACTORY_ADDRESS === 'string' &&
-    isAddress(LOTTO_FACTORY_ADDRESS);
+  const factoryEnv = readAAFactoryEnv();
 
   return (
-    <main style={ui.pageMain} className={flowLayout.pageMain}>
-      <div style={ui.container} className={flowLayout.container}>
-        <div className={flowLayout.heroStack}>
-          <Link href="/aa" className={flowLayout.backLink}>
-            ← Back to AA Home
-          </Link>
-          <AAHero ui={ui} pill="Web3Auth AA Faucet" title="Charge Entry Tokens (AA)" className={flowLayout.hero}>
-          <p style={ui.subtitle}>Your AA account calls `claimTestTokens()` via a UserOp.</p>
-          <p className={styles.metaRow}>
-            Entry Token: {ENTRY_TOKEN_ADDRESS ?? '(missing NEXT_PUBLIC_ENTRY_TOKEN_ADDRESS)'}
-          </p>
-          </AAHero>
-        </div>
-
-        {!hasValidConfig ? (
-          <AASection ui={ui} style={ui.errorBox}>
-            `NEXT_PUBLIC_ENTRY_TOKEN_ADDRESS`, `NEXT_PUBLIC_ACCOUNT_FACTORY_ADDRESS`, or
-            `NEXT_PUBLIC_LOTTO_FACTORY_ADDRESS` is missing or invalid.
-          </AASection>
-        ) : (
-          <AALotteryWorkspace
-            mode="faucet"
-            gasEstimateMode="manual"
-            title="Web3Auth AA + Token Faucet"
-            subtitle="After login, sign and send a UserOperation to call the faucet from your AA account."
-            lottoFactoryAddress={LOTTO_FACTORY_ADDRESS}
-            accountFactoryAddress={ACCOUNT_FACTORY_ADDRESS}
-            entryTokenAddress={ENTRY_TOKEN_ADDRESS}
+    <AAFlowPage
+      hero={
+        <AAHero ui={ui} pill="AA Faucet" title="Get Entry Tokens" className={flowLayout.hero}>
+          <p className={heroStyles.subtitle}>Add LET to your AA account so you can join lotteries.</p>
+          <AAHeroLotteryAddress
+            address={factoryEnv?.entryTokenAddress}
+            label="Entry Token"
+            missingLabel="(missing NEXT_PUBLIC_ENTRY_TOKEN_ADDRESS)"
           />
-        )}
-      </div>
-    </main>
+        </AAHero>
+      }
+    >
+      {!factoryEnv ? (
+        <AAConfigErrorSection ui={ui} message={AA_FACTORY_ENV_ERROR} />
+      ) : (
+        <AALotteryWorkspace
+          mode="faucet"
+          gasEstimateMode="manual"
+          title="Request Tokens"
+          subtitle="When your AA account is ready, request test LET."
+          lottoFactoryAddress={factoryEnv.lottoFactoryAddress}
+          accountFactoryAddress={factoryEnv.accountFactoryAddress}
+          entryTokenAddress={factoryEnv.entryTokenAddress}
+        />
+      )}
+    </AAFlowPage>
   );
 }

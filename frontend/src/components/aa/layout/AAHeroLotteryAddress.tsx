@@ -4,13 +4,20 @@ import { useState } from 'react';
 import { shortenAddress } from '@/hooks/shared/lib/shortenAddress';
 import styles from './aaHeroContent.module.css';
 
-const MISSING_LABEL = '(missing NEXT_PUBLIC_LOTTO_FACTORY_ADDRESS)';
+const DEFAULT_LABEL = 'Lottery Address';
+const DEFAULT_MISSING_LABEL = '(missing NEXT_PUBLIC_LOTTO_FACTORY_ADDRESS)';
 
 type Props = {
   address?: string;
+  label?: string;
+  missingLabel?: string;
 };
 
-export function AAHeroLotteryAddress({ address }: Props) {
+export function AAHeroLotteryAddress({
+  address,
+  label = DEFAULT_LABEL,
+  missingLabel = DEFAULT_MISSING_LABEL,
+}: Props) {
   const [copyFeedback, setCopyFeedback] = useState('');
 
   const handleCopyAddress = async () => {
@@ -26,12 +33,16 @@ export function AAHeroLotteryAddress({ address }: Props) {
   };
 
   if (!address) {
-    return <p className={styles.addressMissing}>Lottery Address: {MISSING_LABEL}</p>;
+    return (
+      <p className={styles.addressMissing}>
+        {label}: {missingLabel}
+      </p>
+    );
   }
 
   return (
     <div className={styles.addressRow}>
-      <span className={styles.addressLabel}>Lottery Address:</span>
+      <span className={styles.addressLabel}>{label}:</span>
       <span className={styles.addressValue} title={address}>
         {shortenAddress(address)}
       </span>

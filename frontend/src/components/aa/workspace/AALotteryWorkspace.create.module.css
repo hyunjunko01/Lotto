@@ -1,17 +1,8 @@
-.createActionGroup {
-  margin-top: 16px;
-  border: 1px solid #ff4fa7;
-  border-radius: 12px;
-  padding: 12px 18px;
-  background: #000000;
-  box-shadow: 0 0 16px rgba(255, 79, 167, 0.5), inset 0 0 14px rgba(255, 79, 167, 0.16);
-}
-
 .createParamsCard {
   margin-top: 8px;
 }
 
-.createParamsCard>div {
+.createParamsCard > div {
   margin-top: 0 !important;
   border: 0 !important;
   background: transparent !important;
@@ -26,42 +17,4 @@
   background: transparent;
   box-shadow: none;
   padding: 0;
-}
-
-.toggleButton {
-  margin-top: 8px;
-  width: 100%;
-  padding: 8px 10px;
-  border-radius: 10px;
-  border: 1px solid #ffd84f;
-  background: #000000;
-  color: #ffe989;
-  cursor: pointer;
-  text-align: center;
-  font-size: 0.86rem;
-  letter-spacing: 0.04em;
-  box-shadow: 0 0 9px rgba(255, 216, 79, 0.44), inset 0 0 7px rgba(255, 216, 79, 0.18);
-}
-
-.userOpPanel {
-  margin-top: 8px;
-  width: 100%;
-  max-width: 100%;
-  box-sizing: border-box;
-  overflow-x: auto;
-  border: 1px solid #2d3f45;
-  border-radius: 10px;
-  padding: 10px;
-  background: rgba(7, 19, 24, 0.72);
-  display: grid;
-  gap: 6px;
-  font-family: ui-monospace, Menlo, monospace;
-  font-size: 0.82rem;
-  color: #d4eaee;
-}
-
-.userOpText {
-  margin: 0;
-  word-break: break-all;
-  overflow-wrap: anywhere;
 }
