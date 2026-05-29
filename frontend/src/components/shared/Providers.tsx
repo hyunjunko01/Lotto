@@ -13,7 +13,6 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
     useEffect(() => {
         // Defer RainbowKit/Wagmi setup until we are on the client.
-        // eslint-disable-next-line react-hooks/set-state-in-effect
         setIsMounted(true);
     }, []);
 
