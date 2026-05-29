@@ -1,5 +1,6 @@
-/* Full-width shell for create/join/faucet pages (keeps /aa home shrink-to-fit). */
+/* Full-width shell for create/join/faucet/detail pages. */
 .pageMain {
+  flex: 1;
   width: 100%;
 }
 

@@ -1,10 +1,9 @@
 'use client';
 
-import Link from 'next/link';
-import { LottoDetailAccountSection } from '@/components/aa/sections/LottoDetailAccountSection';
 import { LottoDetailActionCardsSection } from '@/components/aa/sections/LottoDetailActionCardsSection';
-import { LottoDetailHeaderSection } from '@/components/aa/sections/LottoDetailHeaderSection';
-import flowLayout from '@/components/aa/layout/aaFlowLayout.module.css';
+import { AAFlowPage } from '@/components/aa/layout/AAFlowPage';
+import { AAConfigErrorSection } from '@/components/aa/layout/AAConfigErrorSection';
+import { LottoDetailHero } from '@/components/aa/lotto-detail/LottoDetailHero';
 import { useAAUi } from '@/components/aa/layout/useAAUi';
 import { useAALottoDetailPage } from '@/hooks/aa/useAALottoDetailPage';
 
@@ -14,28 +13,19 @@ export default function AALottoJoinDetailPage() {
 
     if (!d.lottoAddress) {
         return (
-            <main style={ui.pageMain} className={flowLayout.pageMain}>
-                <div style={ui.container} className={flowLayout.container}>
-                    <Link href="/aa/join-lottery" className={flowLayout.backLink}>
-                        ← Back to instances
-                    </Link>
-                    <p style={{ marginTop: 16, ...ui.warningText }}>Invalid lotto address.</p>
-                </div>
-            </main>
+            <AAFlowPage backHref="/aa/join-lottery" backLabel="← Back to instances" hero={<></>}>
+                <AAConfigErrorSection ui={ui} message="Invalid lotto address." />
+            </AAFlowPage>
         );
     }
 
     return (
-        <main style={ui.pageMain} className={flowLayout.pageMain}>
-            <div style={ui.container} className={flowLayout.container}>
-                <Link href="/aa/join-lottery" className={flowLayout.backLink}>
-                    ← Back to instances
-                </Link>
-
-                <LottoDetailHeaderSection ui={ui} d={d} />
-                <LottoDetailAccountSection ui={ui} d={d} />
-                <LottoDetailActionCardsSection ui={ui} d={d} />
-            </div>
-        </main>
+        <AAFlowPage
+            backHref="/aa/join-lottery"
+            backLabel="← Back to instances"
+            hero={<LottoDetailHero ui={ui} d={d} />}
+        >
+            <LottoDetailActionCardsSection d={d} />
+        </AAFlowPage>
     );
 }

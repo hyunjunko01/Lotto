@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { AAHero } from '@/components/aa/layout/AAHero';
+import flowLayout from '@/components/aa/layout/aaFlowLayout.module.css';
 import { useAAUi } from '@/components/aa/layout/useAAUi';
 import styles from './page.module.css';
 
@@ -9,10 +10,10 @@ export default function AAHomePage() {
   const ui = useAAUi();
 
   return (
-    <main style={ui.pageMain}>
-      <div style={ui.container} className={styles.panel}>
-        <div>
-          <AAHero ui={ui} pill="AA Mode" title="Quick Start">
+    <main className={styles.page}>
+      <div className={flowLayout.container}>
+        <div className={flowLayout.heroStack}>
+          <AAHero ui={ui} pill="AA Mode" title="Quick Start" className={flowLayout.hero}>
             <ol className={styles.guideList}>
               <li>Log in with social login through Web3Auth.</li>
               <li>Open faucet first if you need test tokens.</li>

@@ -1,6 +1,7 @@
 'use client';
 
 import { formatEther } from 'viem';
+import { getAAStatusStyle, getAAStatusTone } from '@/lib/aa/statusTone';
 
 interface AccountStatusSectionProps {
     status: string;
@@ -25,11 +26,7 @@ export function AccountStatusSection({
     compact = false,
     showUserOpHashes = true,
 }: AccountStatusSectionProps) {
-    const isReadyStatus = /\bready\b/i.test(status) && !/\bnot ready\b/i.test(status);
-    const statusColor = isReadyStatus ? '#8dffb1' : '#ff8f9f';
-    const statusGlow = isReadyStatus
-        ? '0 0 6px rgba(141, 255, 177, 0.55), 0 0 12px rgba(141, 255, 177, 0.28)'
-        : '0 0 6px rgba(255, 143, 159, 0.58), 0 0 12px rgba(255, 143, 159, 0.3)';
+    const statusStyle = getAAStatusStyle(getAAStatusTone(status));
 
     return (
         <div style={{ marginTop: 12, display: 'grid', gap: 6, color: '#d4eaee', fontSize: '0.9rem' }}>
@@ -39,8 +36,8 @@ export function AccountStatusSection({
                     wordBreak: 'break-all',
                     fontSize: '1.02rem',
                     lineHeight: 1.45,
-                    color: statusColor,
-                    textShadow: statusGlow,
+                    color: statusStyle.color,
+                    textShadow: statusStyle.textShadow,
                 }}
             >
                 <strong>status:</strong> {status}

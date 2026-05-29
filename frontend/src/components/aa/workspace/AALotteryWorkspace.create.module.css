@@ -13,8 +13,16 @@
 
 .createActionCard {
   margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   border: 0;
   background: transparent;
   box-shadow: none;
   padding: 0;
+}
+
+.createActionCard > div {
+  margin-top: 0 !important;
+  width: 100%;
 }

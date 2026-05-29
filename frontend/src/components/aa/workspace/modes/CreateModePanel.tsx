@@ -79,7 +79,7 @@ export function CreateModePanel({
                     executeDisabled={executeDisabled}
                     label={executeLabel.toUpperCase()}
                     tone="neon-green"
-                    marginTop={8}
+                    marginTop={0}
                     compact
                 />
                 <button

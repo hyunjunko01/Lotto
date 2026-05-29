@@ -1,0 +1,169 @@
+.metaList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 4px;
+  color: #88dceb;
+  font-size: 0.86rem;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.metaList strong {
+  color: #c9f8ff;
+  font-weight: 400;
+}
+
+.allowanceRow {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 79, 167, 0.45);
+  background: rgba(20, 0, 11, 0.55);
+  color: #ff9bd2;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.stateNotice {
+  margin-top: 16px;
+  padding: 16px 18px;
+  border-radius: 12px;
+  text-align: center;
+  display: grid;
+  gap: 8px;
+}
+
+.stateNoticeTitle {
+  margin: 0;
+  font-size: 1.08rem;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  line-height: 1.35;
+}
+
+.stateNoticeBody {
+  margin: 0;
+  font-size: 0.94rem;
+  line-height: 1.55;
+  opacity: 0.95;
+}
+
+.stateNoticeCalculating {
+  border: 1px solid rgba(78, 226, 255, 0.55);
+  background: rgba(12, 32, 58, 0.72);
+  box-shadow:
+    0 0 14px rgba(58, 102, 210, 0.35),
+    inset 0 0 12px rgba(36, 68, 168, 0.2);
+}
+
+.stateNoticeCalculating .stateNoticeTitle {
+  color: #9ef2ff;
+  text-shadow: 0 0 8px rgba(77, 227, 255, 0.45);
+}
+
+.stateNoticeCalculating .stateNoticeBody {
+  color: #c9f8ff;
+}
+
+.stateNoticeClosed,
+.stateNoticeRefunding,
+.stateNoticeDefault {
+  border: 1px solid rgba(255, 79, 167, 0.4);
+  background: rgba(20, 0, 11, 0.55);
+}
+
+.stateNoticeClosed .stateNoticeTitle,
+.stateNoticeRefunding .stateNoticeTitle,
+.stateNoticeDefault .stateNoticeTitle {
+  color: #ff9bd2;
+}
+
+.stateNoticeClosed .stateNoticeBody,
+.stateNoticeRefunding .stateNoticeBody,
+.stateNoticeDefault .stateNoticeBody {
+  color: #c6dfe2;
+}
+
+.winnerBanner {
+  margin-top: 12px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid #e8c45a;
+  background: rgba(36, 26, 0, 0.65);
+  box-shadow:
+    0 0 16px rgba(232, 196, 90, 0.5),
+    inset 0 0 12px rgba(232, 196, 90, 0.18);
+  text-align: center;
+  display: grid;
+  gap: 6px;
+}
+
+.winnerLabel {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 400;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #ffe08a;
+  text-shadow: 0 0 8px rgba(255, 214, 102, 0.55);
+}
+
+.winnerAddress {
+  margin: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 1.02rem;
+  color: #ffd86b;
+  word-break: break-all;
+  text-shadow:
+    0 0 10px rgba(255, 200, 80, 0.65),
+    0 0 18px rgba(255, 180, 50, 0.35);
+}
+
+.winnerYou {
+  margin: 4px 0 0;
+  font-size: 0.88rem;
+  color: #fff0b8;
+  text-shadow: 0 0 8px rgba(255, 214, 102, 0.45);
+}
+
+.actionCardHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.actionCardTitle {
+  margin: 0;
+  color: #ff9bd2;
+  font-weight: 300;
+  font-size: 1rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.gasReadyBadge {
+  font-size: 0.72rem;
+  padding: 2px 8px;
+  border-radius: 999;
+  border: 1px solid #4ee2ff;
+  background: rgba(78, 226, 255, 0.1);
+  color: #94efff;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.actionError {
+  margin: 10px 0 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid #924747;
+  background: rgba(127, 39, 39, 0.26);
+  color: #ffd3cb;
+  line-height: 1.5;
+  font-size: 0.86rem;
+}

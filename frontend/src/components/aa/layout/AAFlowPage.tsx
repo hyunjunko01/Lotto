@@ -8,17 +8,24 @@ import flowLayout from '@/components/aa/layout/aaFlowLayout.module.css';
 type Props = {
     hero: ReactNode;
     children: ReactNode;
+    backHref?: string;
+    backLabel?: string;
 };
 
-export function AAFlowPage({ hero, children }: Props) {
+export function AAFlowPage({
+    hero,
+    children,
+    backHref = '/aa',
+    backLabel = '← Back to AA Home',
+}: Props) {
     const ui = useAAUi();
 
     return (
         <main style={ui.pageMain} className={flowLayout.pageMain}>
             <div style={ui.container} className={flowLayout.container}>
                 <div className={flowLayout.heroStack}>
-                    <Link href="/aa" className={flowLayout.backLink}>
-                        ← Back to AA Home
+                    <Link href={backHref} className={flowLayout.backLink}>
+                        {backLabel}
                     </Link>
                     {hero}
                 </div>
