@@ -14,6 +14,7 @@ import {
 import { Address, isAddress, parseEventLogs } from 'viem';
 import lottoFactoryAbi from '@/contracts/LottoFactory.json';
 import { erc20Abi, lottoInstanceAbi, ZERO_LOTTO_WINNER } from '@/hooks/metamask/lib/abis';
+import { refreshMetamaskHeaderLetBalance } from '@/hooks/metamask/header/metamaskHeaderStatus';
 import type { MetamaskDetailAction } from '@/hooks/metamask/lotto-detail/types';
 import { getErrorMessage } from '@/hooks/shared/lib/errors';
 import {
@@ -327,6 +328,7 @@ export function useMetamaskLottoDetailPage() {
                     }
                 }
 
+                void refreshMetamaskHeaderLetBalance();
                 return true;
             } catch (error) {
                 setActionError(getErrorMessage(error, 'Failed to execute transaction.'));

@@ -10,6 +10,7 @@ import {
     useWriteContract,
 } from 'wagmi';
 import { Address, isAddress } from 'viem';
+import { refreshMetamaskHeaderLetBalance } from '@/hooks/metamask/header/metamaskHeaderStatus';
 import { entryTokenFaucetAbi } from '@/hooks/metamask/lib/abis';
 import { getErrorMessage } from '@/hooks/shared/lib/errors';
 import { isTargetNetwork, targetChainId, targetNetworkLabel } from '@/lib/targetNetwork';
@@ -57,6 +58,11 @@ export function useEntryTokenFaucet() {
         if (!blockNumber) return;
         void refetchBalance();
     }, [blockNumber, refetchBalance]);
+
+    useEffect(() => {
+        if (!isClaimConfirmed) return;
+        void refreshMetamaskHeaderLetBalance();
+    }, [isClaimConfirmed]);
 
     const canClaim = isConnected && !isClaimPending && !isClaimConfirming && Boolean(entryTokenAddress);
     const isWrongNetwork = isConnected && !isTargetNetwork(chainId);
