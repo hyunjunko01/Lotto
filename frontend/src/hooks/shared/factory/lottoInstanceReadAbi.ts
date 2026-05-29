@@ -27,4 +27,11 @@ export const lottoInstanceReadAbi = [
         inputs: [],
         outputs: [{ name: '', type: 'uint8' }],
     },
+    {
+        type: 'function',
+        name: 'isPrizeWithdrawn',
+        stateMutability: 'view',
+        inputs: [],
+        outputs: [{ name: '', type: 'bool' }],
+    },
 ] as const;

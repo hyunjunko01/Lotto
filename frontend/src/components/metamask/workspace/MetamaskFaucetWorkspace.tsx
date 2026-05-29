@@ -1,19 +1,12 @@
 'use client';
 
-import { formatEther } from 'viem';
-import { MetamaskHero } from '@/components/metamask/layout/MetamaskHero';
-import { MetamaskSection } from '@/components/metamask/layout/MetamaskSection';
-import { NetworkWarningBanner } from '@/components/metamask/sections/NetworkWarningBanner';
+import { MetamaskActionStatus } from '@/components/metamask/workspace/MetamaskActionStatus';
+import { MetamaskFaucetModePanel } from '@/components/metamask/workspace/modes/MetamaskFaucetModePanel';
 import { useEntryTokenFaucet } from '@/hooks/metamask/faucet/useEntryTokenFaucet';
-import type { MetamaskUi } from '@/styles/metamask/uiStyles';
-import type { MetamaskThemeTokens } from '@/styles/metamask/tokens';
+import sharedStyles from './metamaskWorkspaceShared.module.css';
+import styles from './MetamaskLotteryWorkspace.module.css';
 
-type Props = {
-    ui: MetamaskUi;
-    t: MetamaskThemeTokens;
-};
-
-export function MetamaskFaucetWorkspace({ ui, t }: Props) {
+export function MetamaskFaucetWorkspace() {
     const {
         entryTokenAddress,
         walletAddress,
@@ -21,72 +14,55 @@ export function MetamaskFaucetWorkspace({ ui, t }: Props) {
         switchToTargetNetwork,
         targetNetworkLabel,
         claim,
-        claimHash,
         isClaimPending,
         isClaimConfirming,
         isClaimConfirmed,
         canClaim,
         actionError,
-        currentLetBalance,
-        resetTransaction,
     } = useEntryTokenFaucet();
 
     const isClaiming = isClaimPending || isClaimConfirming;
+    const isConnected = Boolean(walletAddress);
+    const hasValidEntryToken = Boolean(entryTokenAddress);
+    const executeDisabled = !canClaim || isWrongNetwork;
 
     return (
-        <>
-            <MetamaskHero ui={ui} pill="MetaMask Faucet" title="Charge Entry Tokens (EOA)">
-                <p style={ui.subtitle}>Call `claimTestTokens()` directly from your connected wallet.</p>
-                <p style={{ ...ui.bodyMuted, marginTop: 10, wordBreak: 'break-all' }}>
-                    Entry Token: {entryTokenAddress ?? '(missing NEXT_PUBLIC_ENTRY_TOKEN_ADDRESS)'}
-                </p>
-                <p style={{ ...ui.bodyMuted, marginTop: 8, wordBreak: 'break-all' }}>
-                    Wallet: {walletAddress ?? '(not connected)'}
-                </p>
-                <p style={{ ...ui.bodyMuted, marginTop: 8 }}>
-                    Current LET Balance: {typeof currentLetBalance === 'bigint' ? formatEther(currentLetBalance) : '-'}
-                </p>
-                <p style={{ ...ui.bodyMuted, marginTop: 6 }}>
-                    Note: `createLotto` does not change your LET balance. Balance changes when you claim faucet or join
-                    lotto.
-                </p>
-            </MetamaskHero>
+        <section className={styles.workspace}>
+            <h2 className={styles.title}>Request Tokens</h2>
+            <p className={styles.subtitle}>When your wallet is connected on the target network, request test LET.</p>
 
-            {isWrongNetwork ? (
-                <NetworkWarningBanner
-                    ui={ui}
-                    t={t}
-                    targetNetworkLabel={targetNetworkLabel}
-                    onSwitchNetwork={switchToTargetNetwork}
-                />
+            {!isConnected ? (
+                <div className={`${styles.warning} ${styles.warningInfo}`}>
+                    Connect MetaMask from the header before requesting tokens.
+                </div>
             ) : null}
 
-            <MetamaskSection
-                ui={ui}
-                style={{
-                    border: '1px solid #5b4832',
-                    background: 'rgba(35, 21, 8, 0.5)',
-                }}
-            >
-                <button
-                    type="button"
-                    onClick={() => void claim()}
-                    disabled={!canClaim}
-                    style={canClaim ? ui.primaryButton : ui.primaryButtonDisabled}
-                >
-                    {isClaiming ? 'Claiming...' : 'Claim faucet tokens'}
-                </button>
+            {isConnected && !hasValidEntryToken ? (
+                <div className={`${styles.warning} ${styles.warningError}`}>
+                    NEXT_PUBLIC_ENTRY_TOKEN_ADDRESS is missing or invalid.
+                </div>
+            ) : null}
 
-                {claimHash ? <p style={ui.monoInline}>Claim tx: {claimHash}</p> : null}
-                {isClaimConfirmed ? <p style={{ marginTop: 12, color: t.successText }}>Faucet claim confirmed.</p> : null}
-                {actionError ? <p style={ui.errorBox}>{actionError}</p> : null}
-
-                {isClaimConfirmed ? (
-                    <button type="button" onClick={() => resetTransaction()} style={ui.secondaryButton}>
-                        Clear transaction state
+            {isWrongNetwork ? (
+                <div className={`${styles.warning} ${styles.warningError}`}>
+                    Wrong network detected. Please switch to {targetNetworkLabel}.
+                    <button type="button" onClick={switchToTargetNetwork} className={sharedStyles.networkSwitchButton}>
+                        Switch to {targetNetworkLabel}
                     </button>
-                ) : null}
-            </MetamaskSection>
-        </>
+                </div>
+            ) : null}
+
+            {isClaimConfirmed ? <MetamaskActionStatus status="Test tokens claimed successfully." /> : null}
+            {actionError && !isClaimConfirmed ? (
+                <MetamaskActionStatus status={actionError} forceError />
+            ) : null}
+
+            <MetamaskFaucetModePanel
+                onExecute={() => void claim()}
+                isLoading={isClaiming}
+                executeDisabled={executeDisabled}
+                executeLabel={isClaiming ? 'Requesting...' : 'Request Tokens'}
+            />
+        </section>
     );
 }

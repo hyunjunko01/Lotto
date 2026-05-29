@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { useAccount, useBlockNumber, useReadContract, useReadContracts } from 'wagmi';
 import { Address } from 'viem';
 import lottoFactoryAbi from '@/contracts/LottoFactory.json';
@@ -15,6 +15,8 @@ export type { JoinLottoInstanceSummary };
 
 export { lottoStateToLabel };
 
+const READS_PER_LOTTO = 5;
+
 export function useJoinLotteryInstances() {
     const { chainId } = useAccount();
 
@@ -22,6 +24,7 @@ export function useJoinLotteryInstances() {
         data: lottoAddresses,
         isLoading: isLoadingLottoAddresses,
         isError: isLottoAddressesError,
+        refetch: refetchLottoAddresses,
     } = useReadContract({
         address: LOTTO_FACTORY_ADDRESS,
         abi: lottoFactoryAbi,
@@ -65,6 +68,12 @@ export function useJoinLotteryInstances() {
                     functionName: 'lottoState' as const,
                     chainId: targetChainId,
                 },
+                {
+                    address: lottoAddress,
+                    abi: lottoInstanceReadAbi,
+                    functionName: 'isPrizeWithdrawn' as const,
+                    chainId: targetChainId,
+                },
             ]),
         [parsedLottoAddresses]
     );
@@ -102,11 +111,12 @@ export function useJoinLotteryInstances() {
         const resultMap = new Map<Address, JoinLottoInstanceSummary>();
 
         parsedLottoAddresses.forEach((lottoAddress, index) => {
-            const base = index * 4;
+            const base = index * READS_PER_LOTTO;
             const playerCountResult = lottoReadResults[base];
             const maxPlayersResult = lottoReadResults[base + 1];
             const entryFeeResult = lottoReadResults[base + 2];
             const lottoStateResult = lottoReadResults[base + 3];
+            const isPrizeWithdrawnResult = lottoReadResults[base + 4];
 
             resultMap.set(lottoAddress, {
                 playerCount:
@@ -115,11 +125,22 @@ export function useJoinLotteryInstances() {
                     maxPlayersResult?.status === 'success' ? toBigIntValue(maxPlayersResult.result) : undefined,
                 entryFee: entryFeeResult?.status === 'success' ? toBigIntValue(entryFeeResult.result) : undefined,
                 lottoState: lottoStateResult?.status === 'success' ? toBigIntValue(lottoStateResult.result) : undefined,
+                isPrizeWithdrawn:
+                    isPrizeWithdrawnResult?.status === 'success'
+                        ? Boolean(isPrizeWithdrawnResult.result)
+                        : undefined,
             });
         });
 
         return resultMap;
     }, [lottoReadResults, parsedLottoAddresses]);
+
+    const refreshInstances = useCallback(async () => {
+        await refetchLottoAddresses();
+        if (parsedLottoAddresses.length > 0) {
+            await refetchLottoStats();
+        }
+    }, [parsedLottoAddresses.length, refetchLottoAddresses, refetchLottoStats]);
 
     const isWrongNetwork = chainId !== undefined && !isTargetNetwork(chainId);
 
@@ -131,5 +152,6 @@ export function useJoinLotteryInstances() {
         isLottoAddressesError,
         isLoadingLottoStats,
         lottoSummaries,
+        refreshInstances,
     };
 }

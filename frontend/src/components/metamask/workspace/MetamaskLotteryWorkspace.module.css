@@ -1,0 +1,43 @@
+.workspace {
+  margin-top: 16px;
+  margin-bottom: 16px;
+  width: 100%;
+  max-width: 560px;
+  box-sizing: border-box;
+  padding: 16px;
+  border: 1px solid rgba(255, 177, 85, 0.24);
+  border-radius: 10px;
+  background: #000000;
+  margin-inline: auto;
+}
+
+.title {
+  margin: 0 0 10px;
+  color: #ffe8c8;
+  font-weight: 400;
+}
+
+.subtitle {
+  margin-top: 0;
+  color: #e8c98a;
+  line-height: 1.5;
+}
+
+.warning {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  line-height: 1.55;
+}
+
+.warningError {
+  border: 1px solid #924747;
+  background: rgba(127, 39, 39, 0.26);
+  color: #ffd3cb;
+}
+
+.warningInfo {
+  border: 1px solid rgba(255, 177, 85, 0.35);
+  background: rgba(255, 177, 85, 0.08);
+  color: #ffe8c8;
+}

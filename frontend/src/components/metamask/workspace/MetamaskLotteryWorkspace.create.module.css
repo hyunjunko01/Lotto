@@ -1,0 +1,28 @@
+.createParamsCard {
+  margin-top: 8px;
+}
+
+.createParamsCard > div {
+  margin-top: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+}
+
+.createActionCard {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+}
+
+.createActionCard > div {
+  margin-top: 0 !important;
+  width: 100%;
+}

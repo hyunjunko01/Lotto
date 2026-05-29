@@ -1,0 +1,64 @@
+.page {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 10px 16px 16px;
+  background: #000000;
+  color: #ffe8c8;
+  font-family: 'Avenir Next', 'IBM Plex Sans', 'Segoe UI', sans-serif;
+  box-sizing: border-box;
+}
+
+.guideList {
+  margin: 8px auto 0;
+  padding: 0;
+  list-style-type: decimal;
+  list-style-position: inside;
+  color: #e8c98a;
+  line-height: 1.6;
+  font-size: 0.96rem;
+  max-width: 500px;
+  text-align: center;
+}
+
+.navCard {
+  margin-top: 18px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 16px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 177, 85, 0.32);
+  background: rgba(0, 0, 0, 0.72);
+}
+
+.navGrid {
+  margin-top: 0;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.navLink {
+  display: block;
+  text-align: center;
+  padding: 9px 12px;
+  border-radius: 10px;
+  width: fit-content;
+  min-width: 240px;
+  margin-inline: auto;
+  border: 1px solid #ff4fa7;
+  background: transparent;
+  color: #ff9bcf;
+  box-shadow: 0 0 10px rgba(255, 79, 167, 0.24);
+  font-weight: 300;
+  font-size: 0.92rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-decoration: none;
+}

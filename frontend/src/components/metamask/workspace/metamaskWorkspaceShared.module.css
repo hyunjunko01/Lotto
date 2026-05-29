@@ -1,0 +1,55 @@
+.pinkActionCard {
+  margin-top: 16px;
+  border: 1px solid #ff4fa7;
+  border-radius: 12px;
+  padding: 12px 18px;
+  background: #000000;
+  box-shadow: 0 0 16px rgba(255, 79, 167, 0.5), inset 0 0 14px rgba(255, 79, 167, 0.16);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.feedback {
+  margin: 0;
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 0.82rem;
+  word-break: break-all;
+  color: #d4b87a;
+}
+
+.feedbackError {
+  margin: 0;
+  color: #ffd3cb;
+  line-height: 1.5;
+}
+
+.feedbackSuccess {
+  margin: 0;
+  color: #b5f3c9;
+  line-height: 1.5;
+}
+
+.clearButton {
+  margin-top: 4px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 177, 85, 0.45);
+  background: rgba(255, 177, 85, 0.08);
+  color: #ffd49a;
+  cursor: pointer;
+  font-size: 0.86rem;
+  letter-spacing: 0.04em;
+}
+
+.networkSwitchButton {
+  margin-top: 10px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid #ffb155;
+  background: linear-gradient(135deg, #c37a2c, #8d4f24);
+  color: #fff7ef;
+  cursor: pointer;
+  font-size: 0.86rem;
+  font-weight: 600;
+}

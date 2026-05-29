@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
 import {
     useAccount,
@@ -14,7 +14,13 @@ import {
 import { Address, isAddress, parseEventLogs } from 'viem';
 import lottoFactoryAbi from '@/contracts/LottoFactory.json';
 import { erc20Abi, lottoInstanceAbi, ZERO_LOTTO_WINNER } from '@/hooks/metamask/lib/abis';
+import type { MetamaskDetailAction } from '@/hooks/metamask/lotto-detail/types';
 import { getErrorMessage } from '@/hooks/shared/lib/errors';
+import {
+    executeDetailAction as runDetailWrite,
+    parseRequestIdFromReceipt,
+    waitForDetailActionReceipt,
+} from '@/hooks/metamask/lotto-detail/executeDetailAction';
 import { lottoStateToLabel, LottoState } from '@/hooks/shared/lib/lottoState';
 import { isTargetNetwork, targetChainId, targetLogLookbackBlocks, targetNetworkLabel } from '@/lib/targetNetwork';
 
@@ -62,7 +68,7 @@ export function useMetamaskLottoDetailPage() {
         query: { enabled: Boolean(lottoAddress) },
     });
 
-    const { data: playerCount } = useReadContract({
+    const { data: playerCount, refetch: refetchPlayerCount } = useReadContract({
         address: lottoAddress,
         abi: lottoInstanceAbi,
         functionName: 'getPlayerCount',
@@ -73,7 +79,7 @@ export function useMetamaskLottoDetailPage() {
         },
     });
 
-    const { data: remainingSpots } = useReadContract({
+    const { data: remainingSpots, refetch: refetchRemainingSpots } = useReadContract({
         address: lottoAddress,
         abi: lottoInstanceAbi,
         functionName: 'getRemainingSpots',
@@ -108,7 +114,7 @@ export function useMetamaskLottoDetailPage() {
         query: { enabled: Boolean(lottoAddress) },
     });
 
-    const { data: lottoStateValue } = useReadContract({
+    const { data: lottoStateValue, refetch: refetchLottoState } = useReadContract({
         address: lottoAddress,
         abi: lottoInstanceAbi,
         functionName: 'lottoState',
@@ -198,7 +204,7 @@ export function useMetamaskLottoDetailPage() {
         },
     });
 
-    const { isLoading: isActionConfirming, isSuccess: isActionConfirmed } = useWaitForTransactionReceipt({
+    const { isLoading: isActionConfirming } = useWaitForTransactionReceipt({
         hash: actionTxHash,
         chainId: targetChainId,
     });
@@ -267,111 +273,85 @@ export function useMetamaskLottoDetailPage() {
         return () => clearInterval(id);
     }, []);
 
-    const handleJoinLotto = async () => {
-        try {
-            setActionError('');
-            if (!ensureReady() || !lottoAddress) return;
-            if (!canJoin) {
-                setActionError('joinLotto is only available while state is OPEN.');
-                return;
+    const refetchLottoInstanceState = useCallback(() => {
+        void refetchLottoState();
+        void refetchPlayerCount();
+        void refetchRemainingSpots();
+        void refetchBalance();
+    }, [refetchBalance, refetchLottoState, refetchPlayerCount, refetchRemainingSpots]);
+
+    const refetchAfterAction = useCallback(async () => {
+        await Promise.all([refetchTokenReads(), refetchLottoInstanceState()]);
+    }, [refetchLottoInstanceState, refetchTokenReads]);
+
+    const executeDetailAction = useCallback(
+        async (action: MetamaskDetailAction): Promise<boolean> => {
+            if (!publicClient) {
+                setActionError('RPC client is unavailable.');
+                return false;
             }
 
-            if (!entryTokenAddress) {
-                setActionError('Entry token address is not available.');
-                return;
+            try {
+                setActionError('');
+                if (action === 'requestWinner') {
+                    setRequestId('');
+                }
+
+                const hash = await runDetailWrite(action, {
+                    lottoAddress,
+                    entryTokenAddress: entryTokenAddress as Address | undefined,
+                    entryFee: entryFee as bigint | undefined,
+                    currentTokenBalance,
+                    statusNumber,
+                    refundableAmount: refundableAmount as bigint | undefined,
+                    isConnectedWinner,
+                    canJoin,
+                    canRequest,
+                    canWithdraw,
+                    canTriggerRefundMode,
+                    hasSufficientAllowance,
+                    ensureReady,
+                    publicClient,
+                    writeContract: (args) =>
+                        writeContractAsync(
+                            args as Parameters<typeof writeContractAsync>[0]
+                        ),
+                });
+
+                const receipt = await waitForDetailActionReceipt(publicClient, hash);
+
+                if (action === 'requestWinner' && lottoAddress) {
+                    const nextRequestId = parseRequestIdFromReceipt(lottoAddress, receipt.logs);
+                    if (nextRequestId) {
+                        setRequestId(nextRequestId);
+                    }
+                }
+
+                return true;
+            } catch (error) {
+                setActionError(getErrorMessage(error, 'Failed to execute transaction.'));
+                return false;
             }
-            if (entryFee !== undefined && typeof currentTokenBalance === 'bigint' && currentTokenBalance < entryFee) {
-                setActionError('Not enough LET balance. Use the token faucet first.');
-                return;
-            }
-            if (!hasSufficientAllowance) {
-                setActionError('Approve entry token first.');
-                return;
-            }
-
-            await writeContractAsync({
-                address: lottoAddress,
-                abi: lottoInstanceAbi,
-                functionName: 'joinLotto',
-            });
-            void refetchBalance();
-            void refetchTokenReads();
-        } catch (error) {
-            setActionError(getErrorMessage(error, 'Failed to execute joinLotto.'));
-        }
-    };
-
-    const handleApproveEntryToken = async () => {
-        try {
-            setActionError('');
-            if (!ensureReady() || !lottoAddress || !entryTokenAddress || entryFee === undefined) return;
-            if (!canJoin) {
-                setActionError('approve is only available while state is OPEN.');
-                return;
-            }
-            if (typeof currentTokenBalance === 'bigint' && currentTokenBalance < entryFee) {
-                setActionError('Not enough LET balance. Use the token faucet first.');
-                return;
-            }
-
-            await writeContractAsync({
-                address: entryTokenAddress,
-                abi: erc20Abi,
-                functionName: 'approve',
-                args: [lottoAddress, entryFee],
-            });
-            void refetchTokenReads();
-        } catch (error) {
-            setActionError(getErrorMessage(error, 'Failed to approve entry token.'));
-        }
-    };
-
-    const handleRequestWinner = async () => {
-        try {
-            setActionError('');
-            setRequestId('');
-            if (!ensureReady() || !lottoAddress) return;
-            if (!canRequest) {
-                setActionError('requestWinner is only available while state is FULL.');
-                return;
-            }
-
-            await writeContractAsync({
-                address: lottoAddress,
-                abi: lottoInstanceAbi,
-                functionName: 'requestWinner',
-            });
-        } catch (error) {
-            setActionError(getErrorMessage(error, 'Failed to execute requestWinner.'));
-        }
-    };
-
-    useEffect(() => {
-        const resolveRequestId = async () => {
-            if (!isActionConfirmed || !actionTxHash || !publicClient || !lottoAddress) return;
-
-            const receipt = await publicClient.getTransactionReceipt({ hash: actionTxHash });
-            const parsedLogs = parseEventLogs({
-                abi: lottoInstanceAbi,
-                logs: receipt.logs,
-                eventName: 'RandomnessRequested',
-            });
-
-            const matchedLog = parsedLogs.find(
-                (log) => log.args.lottoAddress?.toLowerCase() === lottoAddress.toLowerCase()
-            );
-            if (!matchedLog) return;
-
-            const value = matchedLog.args.requestId;
-            if (typeof value === 'bigint') {
-                setRequestId(value.toString());
-            } else if (typeof value === 'number') {
-                setRequestId(String(value));
-            }
-        };
-
-        void resolveRequestId();
-    }, [actionTxHash, isActionConfirmed, lottoAddress, publicClient]);
+        },
+        [
+            canJoin,
+            canRequest,
+            canTriggerRefundMode,
+            canWithdraw,
+            currentTokenBalance,
+            entryFee,
+            entryTokenAddress,
+            ensureReady,
+            hasSufficientAllowance,
+            isConnectedWinner,
+            lottoAddress,
+            publicClient,
+            refetchAfterAction,
+            refundableAmount,
+            statusNumber,
+            writeContractAsync,
+        ]
+    );
 
     useEffect(() => {
         const loadLatestRequestId = async () => {
@@ -427,83 +407,18 @@ export function useMetamaskLottoDetailPage() {
         void loadLatestRequestId();
     }, [factory, lottoAddress, publicClient, lottoStateValue]);
 
-    const handleWithdrawPrize = async () => {
-        try {
-            setActionError('');
-            if (!ensureReady() || !lottoAddress) return;
-            if (!isConnectedWinner) {
-                setActionError('Only the winner can withdraw the prize.');
-                return;
-            }
-            if (!canWithdraw) {
-                setActionError('withdrawPrize is only available when state is CLOSED and prize is not withdrawn.');
-                return;
-            }
-
-            await writeContractAsync({
-                address: lottoAddress,
-                abi: lottoInstanceAbi,
-                functionName: 'withdrawPrize',
-            });
-            void refetchBalance();
-        } catch (error) {
-            setActionError(getErrorMessage(error, 'Failed to execute withdrawPrize.'));
-        }
-    };
-
-    const handleTriggerRefundMode = async () => {
-        try {
-            setActionError('');
-            if (!ensureReady() || !lottoAddress) return;
-            if (!canTriggerRefundMode) {
-                setActionError('triggerRefundMode is only available after the CALCULATING timeout has elapsed.');
-                return;
-            }
-
-            await writeContractAsync({
-                address: lottoAddress,
-                abi: lottoInstanceAbi,
-                functionName: 'triggerRefundMode',
-            });
-        } catch (error) {
-            setActionError(getErrorMessage(error, 'Failed to execute triggerRefundMode.'));
-        }
-    };
-
-    const handleClaimRefund = async () => {
-        try {
-            setActionError('');
-            if (!ensureReady() || !lottoAddress) return;
-            if (statusNumber !== LottoState.REFUNDING) {
-                setActionError('claimRefund is only available while state is REFUNDING.');
-                return;
-            }
-            if (!(typeof refundableAmount === 'bigint') || refundableAmount <= BigInt(0)) {
-                setActionError('No refundable balance for this wallet.');
-                return;
-            }
-
-            await writeContractAsync({
-                address: lottoAddress,
-                abi: lottoInstanceAbi,
-                functionName: 'claimRefund',
-            });
-            void refetchBalance();
-            void refetchTokenReads();
-        } catch (error) {
-            setActionError(getErrorMessage(error, 'Failed to execute claimRefund.'));
-        }
-    };
-
     const winnerDisplay =
         winner && winner !== ZERO_LOTTO_WINNER ? winner : 'No winner yet';
 
     return {
         rawAddress,
         lottoAddress,
+        isConnected,
         targetNetworkLabel,
         isWrongNetwork,
         switchToTargetNetwork,
+        isActionPending,
+        isActionConfirming,
         stateLabel: lottoStateToLabel,
         lottoBalance,
         entryFee,
@@ -535,14 +450,8 @@ export function useMetamaskLottoDetailPage() {
         hasSufficientBalance,
         insufficientLetKnown,
         isConnectedWinner,
-        actionTxHash,
-        isActionConfirmed,
         actionError,
-        handleApproveEntryToken,
-        handleJoinLotto,
-        handleRequestWinner,
-        handleWithdrawPrize,
-        handleTriggerRefundMode,
-        handleClaimRefund,
+        executeDetailAction,
+        refetchAfterAction,
     };
 }

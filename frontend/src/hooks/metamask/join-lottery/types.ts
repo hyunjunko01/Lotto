@@ -3,4 +3,5 @@ export type JoinLottoInstanceSummary = {
     maxPlayers?: bigint;
     entryFee?: bigint;
     lottoState?: bigint;
+    isPrizeWithdrawn?: boolean;
 };

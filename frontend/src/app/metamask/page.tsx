@@ -2,43 +2,39 @@
 
 import Link from 'next/link';
 import { MetamaskHero } from '@/components/metamask/layout/MetamaskHero';
+import flowLayout from '@/components/metamask/layout/metamaskFlowLayout.module.css';
 import { useMetamaskUi } from '@/components/metamask/layout/useMetamaskUi';
+import styles from './page.module.css';
 
 export default function MetamaskHomePage() {
-    const ui = useMetamaskUi('warm');
+    const ui = useMetamaskUi();
 
     return (
-        <main style={ui.pageMain}>
-            <div style={ui.container}>
-                <Link
-                    href="/"
-                    style={{
-                        display: 'inline-flex',
-                        marginBottom: 14,
-                        color: '#8fe8ff',
-                        textDecoration: 'underline',
-                        fontWeight: 700,
-                    }}
-                >
-                    ← Back to Lotto Home
-                </Link>
-                <MetamaskHero ui={ui} pill="MetaMask Mode" title="EOA Transaction Workspace">
-                    <p style={ui.subtitle}>
-                        Connect your wallet from the top button, then continue with the standard EOA transaction flow.
-                    </p>
-                </MetamaskHero>
+        <main className={styles.page}>
+            <div className={flowLayout.container}>
+                <div className={flowLayout.heroStack}>
+                    <MetamaskHero ui={ui} pill="MetaMask Mode" title="Quick Start" className={flowLayout.hero}>
+                        <ol className={styles.guideList}>
+                            <li>Connect your wallet from the header.</li>
+                            <li>Open faucet first if you need test tokens.</li>
+                            <li>Create or join a lottery from the menu.</li>
+                        </ol>
+                    </MetamaskHero>
 
-                <section style={ui.navGrid}>
-                    <Link href="/metamask/create-lottery" style={ui.navLink}>
-                        Create Lottery
-                    </Link>
-                    <Link href="/metamask/join-lottery" style={ui.navLink}>
-                        Join Lottery
-                    </Link>
-                    <Link href="/metamask/faucet" style={ui.navLink}>
-                        Token Faucet
-                    </Link>
-                </section>
+                    <section className={styles.navCard}>
+                        <div className={styles.navGrid}>
+                            <Link href="/metamask/create-lottery" className={styles.navLink}>
+                                MetaMask Create Lottery
+                            </Link>
+                            <Link href="/metamask/join-lottery" className={styles.navLink}>
+                                MetaMask Join Lottery
+                            </Link>
+                            <Link href="/metamask/faucet" className={styles.navLink}>
+                                MetaMask Token Faucet
+                            </Link>
+                        </div>
+                    </section>
+                </div>
             </div>
         </main>
     );

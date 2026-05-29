@@ -1,0 +1,65 @@
+.subtitle {
+  margin: 6px auto 0;
+  max-width: 500px;
+  color: #e8c98a;
+  line-height: 1.5;
+  text-align: center;
+  font-size: 0.86rem;
+}
+
+.addressRow {
+  margin: 8px auto 0;
+  max-width: 100%;
+  color: #e8c98a;
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+  font-size: 0.86rem;
+  opacity: 0.9;
+}
+
+.addressLabel {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.addressValue {
+  flex-shrink: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.addressMissing {
+  margin: 8px auto 0;
+  max-width: 500px;
+  color: #e8c98a;
+  line-height: 1.45;
+  text-align: center;
+  font-size: 0.82rem;
+  opacity: 0.9;
+  word-break: break-word;
+}
+
+.copyButton {
+  border: 1px solid #ff4fa7;
+  border-radius: 8px;
+  padding: 0 10px;
+  min-height: 28px;
+  width: 74px;
+  flex: 0 0 74px;
+  background: transparent;
+  color: #ff9bcf;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  cursor: pointer;
+}

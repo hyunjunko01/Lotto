@@ -1,23 +1,16 @@
 'use client';
 
-import { formatEther } from 'viem';
-import { MetamaskSection } from '@/components/metamask/layout/MetamaskSection';
-import { NetworkWarningBanner } from '@/components/metamask/sections/NetworkWarningBanner';
+import { MetamaskActionStatus } from '@/components/metamask/workspace/MetamaskActionStatus';
+import { MetamaskCreateModePanel } from '@/components/metamask/workspace/modes/MetamaskCreateModePanel';
 import { useCreateLotto } from '@/hooks/metamask/create-lottery/useCreateLotto';
-import type { MetamaskUi } from '@/styles/metamask/uiStyles';
-import type { MetamaskThemeTokens } from '@/styles/metamask/tokens';
+import sharedStyles from './metamaskWorkspaceShared.module.css';
+import styles from './MetamaskLotteryWorkspace.module.css';
 
-type Props = {
-    ui: MetamaskUi;
-    t: MetamaskThemeTokens;
-};
-
-export function MetamaskCreateLotteryWorkspace({ ui, t }: Props) {
+export function MetamaskCreateLotteryWorkspace() {
     const {
-        targetChainId,
         targetNetworkLabel,
-        lottoFactoryAddress,
-        entryTokenAddress,
+        hasValidEntryToken,
+        isConnected,
         isWrongNetwork,
         switchToTargetNetwork,
         entryFeeEth,
@@ -26,90 +19,60 @@ export function MetamaskCreateLotteryWorkspace({ ui, t }: Props) {
         setMaxPlayers,
         actionError,
         createLotto,
-        createLottoHash,
         isCreateLottoPending,
         isCreateLottoConfirming,
         isCreateLottoConfirmed,
         canCreate,
-        currentLetBalance,
-        resetTransaction,
     } = useCreateLotto();
 
     const isCreating = isCreateLottoPending || isCreateLottoConfirming;
+    const executeDisabled = !canCreate || isWrongNetwork;
 
     return (
-        <>
-            <MetamaskSection ui={ui}>
-                <h1 style={ui.h1Flat}>Create Lottery</h1>
-                <p style={ui.bodyMuted}>
-                    Enter lottery settings, then call factory.createLotto. Creating an instance only costs gas (native
-                    ETH on this network); LET is used when players join, not to create.
-                </p>
-                {isWrongNetwork ? (
-                    <NetworkWarningBanner
-                        ui={ui}
-                        t={t}
-                        targetNetworkLabel={targetNetworkLabel}
-                        onSwitchNetwork={switchToTargetNetwork}
-                        inline
-                    />
-                ) : null}
-            </MetamaskSection>
+        <section className={styles.workspace}>
+            <h2 className={styles.title}>Create Lottery Action</h2>
+            <p className={styles.subtitle}>
+                When your wallet is connected on the target network, set values and create the lottery instance.
+            </p>
 
-            <MetamaskSection ui={ui}>
-                <label style={{ ...ui.label, marginBottom: 12 }}>
-                    Entry Fee (LET)
-                    <input
-                        value={entryFeeEth}
-                        onChange={(e) => setEntryFeeEth(e.target.value)}
-                        placeholder="0.01"
-                        style={ui.input}
-                    />
-                </label>
+            {!isConnected ? (
+                <div className={`${styles.warning} ${styles.warningInfo}`}>
+                    Connect MetaMask from the header before creating a lottery.
+                </div>
+            ) : null}
 
-                <label style={{ ...ui.label, marginBottom: 16 }}>
-                    Max Players
-                    <input
-                        value={maxPlayers}
-                        onChange={(e) => setMaxPlayers(e.target.value)}
-                        placeholder="5"
-                        type="number"
-                        min={2}
-                        style={ui.input}
-                    />
-                </label>
+            {isConnected && !hasValidEntryToken ? (
+                <div className={`${styles.warning} ${styles.warningError}`}>
+                    NEXT_PUBLIC_ENTRY_TOKEN_ADDRESS is missing or invalid.
+                </div>
+            ) : null}
 
-                <button
-                    type="button"
-                    onClick={() => void createLotto()}
-                    disabled={!canCreate}
-                    style={canCreate ? ui.primaryButton : ui.primaryButtonDisabled}
-                >
-                    {isCreating ? 'Creating...' : 'Create Lottery'}
-                </button>
-
-                {createLottoHash ? <p style={ui.monoInline}>Create tx: {createLottoHash}</p> : null}
-                {isCreateLottoConfirmed ? (
-                    <p style={{ marginTop: 12, color: t.successText }}>Lottery instance created successfully.</p>
-                ) : null}
-                {actionError ? <p style={ui.errorBox}>{actionError}</p> : null}
-
-                {isCreateLottoConfirmed ? (
-                    <button type="button" onClick={() => resetTransaction()} style={ui.secondaryButton}>
-                        Clear transaction state
+            {isWrongNetwork ? (
+                <div className={`${styles.warning} ${styles.warningError}`}>
+                    Wrong network detected. Please switch to {targetNetworkLabel}.
+                    <button type="button" onClick={switchToTargetNetwork} className={sharedStyles.networkSwitchButton}>
+                        Switch to {targetNetworkLabel}
                     </button>
-                ) : null}
-            </MetamaskSection>
+                </div>
+            ) : null}
 
-            <p style={{ ...ui.monoNote, marginTop: 20 }}>
-                Factory address in use: {lottoFactoryAddress} (chainId {targetChainId})
-            </p>
-            <p style={{ ...ui.monoNote, marginTop: 6 }}>
-                Entry token in use: {entryTokenAddress ?? '(missing NEXT_PUBLIC_ENTRY_TOKEN_ADDRESS)'}
-            </p>
-            <p style={{ ...ui.monoNote, marginTop: 6 }}>
-                Current LET Balance: {typeof currentLetBalance === 'bigint' ? formatEther(currentLetBalance) : '-'}
-            </p>
-        </>
+            {isCreateLottoConfirmed ? (
+                <MetamaskActionStatus status="Lottery instance created successfully." />
+            ) : null}
+            {actionError && !isCreateLottoConfirmed ? (
+                <MetamaskActionStatus status={actionError} forceError />
+            ) : null}
+
+            <MetamaskCreateModePanel
+                entryFeeEth={entryFeeEth}
+                setEntryFeeEth={setEntryFeeEth}
+                maxPlayers={maxPlayers}
+                setMaxPlayers={setMaxPlayers}
+                onExecute={() => void createLotto()}
+                isLoading={isCreating}
+                executeDisabled={executeDisabled}
+                executeLabel={isCreating ? 'Creating...' : 'Create Lottery'}
+            />
+        </section>
     );
 }

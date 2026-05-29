@@ -1,0 +1,151 @@
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.sectionTitle {
+  margin: 0;
+  color: #ffe8c8;
+  font-weight: 400;
+  font-size: 1.2rem;
+}
+
+.refreshButton {
+  border: 1px solid #ff4fa7;
+  border-radius: 8px;
+  padding: 6px 10px;
+  background: transparent;
+  color: #ff9bcf;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+
+.refreshButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.refreshMeta {
+  margin: 0 0 12px;
+  color: #e8c98a;
+  font-size: 0.78rem;
+}
+
+.groupStack {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.groupColumn {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.groupColumn:not(:first-child) {
+  border-left: 1px solid rgba(255, 79, 167, 0.25);
+  padding-left: 14px;
+}
+
+.groupTitle {
+  margin: 0 0 10px;
+  color: #ff9bcf;
+  font-size: 0.96rem;
+  font-weight: 300;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.list {
+  display: grid;
+  gap: 8px;
+  max-height: min(420px, 52vh);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 4px;
+  scrollbar-gutter: stable;
+  scrollbar-color: rgba(255, 79, 167, 0.65) #000000;
+}
+
+.list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.list::-webkit-scrollbar-track {
+  background: #000000;
+}
+
+.list::-webkit-scrollbar-thumb {
+  background: rgba(255, 79, 167, 0.55);
+  border-radius: 4px;
+  border: 2px solid #000000;
+}
+
+.list::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 79, 167, 0.75);
+}
+
+.statusText {
+  margin: 0;
+  color: #e8c98a;
+  font-size: 0.92rem;
+}
+
+.emptyText {
+  margin: 0;
+  color: #e8c98a;
+  font-size: 0.92rem;
+  opacity: 0.9;
+}
+
+.instanceCard {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border: 1px solid #ff4fa7;
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: #ff9bcf;
+  text-decoration: none;
+  background: #000000;
+}
+
+.cardAddress {
+  font-size: 1rem;
+  line-height: 1.3;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.cardMeta {
+  font-size: 0.92rem;
+  color: #e8c98a;
+  line-height: 1.4;
+}
+
+.warningText {
+  margin: 0;
+  color: #ffc2b6;
+  line-height: 1.5;
+}
+
+@media (max-width: 1080px) {
+  .groupStack {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+
+  .groupColumn:not(:first-child) {
+    border-left: 0;
+    border-top: 1px solid rgba(255, 79, 167, 0.25);
+    padding-left: 0;
+    padding-top: 14px;
+  }
+}

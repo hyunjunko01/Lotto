@@ -24,7 +24,7 @@ export function useCreateLotto() {
     const hasValidEntryToken = typeof ENTRY_TOKEN_ADDRESS === 'string' && isAddress(ENTRY_TOKEN_ADDRESS);
     const isWrongNetwork = isConnected && !isTargetNetwork(chainId);
 
-    const [entryFeeEth, setEntryFeeEth] = useState('0.01');
+    const [entryFeeEth, setEntryFeeEth] = useState('10');
     const [maxPlayers, setMaxPlayers] = useState('5');
     const [actionError, setActionError] = useState('');
 
