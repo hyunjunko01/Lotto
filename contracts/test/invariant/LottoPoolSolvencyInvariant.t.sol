@@ -8,13 +8,14 @@ import {LottoImplementation} from "../../src/Lotto/LottoImplementation.sol";
 import {LottoEntryToken} from "../../src/Lotto/LottoEntryToken.sol";
 import {VRFCoordinatorV2_5Mock} from "@chainlink/contracts/src/v0.8/vrf/mocks/VRFCoordinatorV2_5Mock.sol";
 import {LottoPoolSolvency} from "../helpers/LottoPoolSolvency.sol";
+import {LottoPoolStateProperties} from "../helpers/LottoPoolStateProperties.sol";
 import {LottoHandler} from "./LottoHandler.sol";
 
 /**
  * @title LottoPoolSolvencyInvariant
  * @notice Invariant suite for pool solvency (SECURITY.md I2).
- * @dev Handler currently supports `createLotto` + `join` only. Add refund/VRF/withdraw
- *      actions to the handler before expecting deep state coverage.
+ * @dev Current scope covers OPEN/FULL/CALCULATING/CLOSED/REFUNDING
+ *      via join/request/fulfill/refund/withdraw actions.
  */
 contract LottoPoolSolvencyInvariant is Test {
     LottoFactory internal factory;
@@ -54,18 +55,28 @@ contract LottoPoolSolvencyInvariant is Test {
         joinPool[1] = player2;
         joinPool[2] = player3;
 
-        handler = new LottoHandler(factory, entryToken, ENTRY_FEE, MAX_PLAYERS, joinPool);
+        handler = new LottoHandler(factory, entryToken, vrfCoordinator, ENTRY_FEE, MAX_PLAYERS, joinPool);
         handler.createLotto();
 
         targetContract(address(handler));
-        bytes4[] memory selectors = new bytes4[](1);
+        bytes4[] memory selectors = new bytes4[](6);
         selectors[0] = LottoHandler.joinRandom.selector;
+        selectors[1] = LottoHandler.requestWinner.selector;
+        selectors[2] = LottoHandler.fulfillRandomness.selector;
+        selectors[3] = LottoHandler.warpAndTriggerRefund.selector;
+        selectors[4] = LottoHandler.claimRefundRandom.selector;
+        selectors[5] = LottoHandler.withdrawPrizeAsWinner.selector;
         targetSelector(FuzzSelector({addr: address(handler), selectors: selectors}));
     }
 
     function invariant_poolSolvent() public view {
         address[] memory accounts = handler.trackedAccounts();
         LottoPoolSolvency.assertPoolSolvent(handler.lotto(), accounts);
+    }
+
+    function invariant_phaseSpecificObligations() public view {
+        address[] memory accounts = handler.trackedAccounts();
+        LottoPoolStateProperties.assertPhaseSpecificObligations(handler.lotto(), accounts);
     }
 
     // Optional: uncomment after handler exposes more actions
