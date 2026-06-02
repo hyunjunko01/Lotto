@@ -29,6 +29,7 @@ contract LottoFactoryUnitTest is Test {
             500000, // callback gas limit
             false // use LINK payment in tests
         );
+        factory.setAllowedEntryToken(entryToken, true);
         vrfCoordinator.addConsumer(subId, address(factory));
     }
 
@@ -55,6 +56,21 @@ contract LottoFactoryUnitTest is Test {
 
         vm.prank(player1);
         factory.createLotto(0.1 ether, 3, entryToken);
+    }
+
+    function test_createLotto_RevertWhenEntryTokenNotAllowed() external {
+        address disallowedToken = makeAddr("disallowedToken");
+        vm.expectRevert(abi.encodeWithSelector(LottoFactory.LottoFactory__EntryTokenNotAllowed.selector, disallowedToken));
+        factory.createLotto(0.1 ether, 3, disallowedToken);
+    }
+
+    function test_setAllowedEntryToken_AllowsNewToken() external {
+        address newToken = makeAddr("newToken");
+        factory.setAllowedEntryToken(newToken, true);
+
+        address lottoAddress = factory.createLotto(0.1 ether, 3, newToken);
+        assertTrue(lottoAddress != address(0));
+        assertTrue(factory.isLottoInstance(lottoAddress));
     }
 
     // --- requestWinnerRandomness function tests ---

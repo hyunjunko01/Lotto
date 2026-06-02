@@ -40,6 +40,7 @@ contract LottoSystemTest is Test {
         entryToken = new LottoEntryToken();
         factory =
             new LottoFactory(address(implementation), coordinator, subscriptionId, KEY_HASH, CALLBACK_GAS_LIMIT, false);
+        factory.setAllowedEntryToken(address(entryToken), true);
 
         vrfCoordinator.fundSubscription(subscriptionId, 1e24);
         vrfCoordinator.addConsumer(subscriptionId, address(factory));

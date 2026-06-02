@@ -94,7 +94,7 @@ contract LottoImplementation is Initializable, ReentrancyGuard {
      * @notice Function for joining the lotto
      * @dev Players join by paying ERC20 entry tokens. The lotto automatically transitions to FULL when max players are reached.
      */
-    function joinLotto() external {
+    function joinLotto() external nonReentrant {
         // Checks
         if (lottoState == LottoState.FULL) revert Lotto__IsFull();
         if (lottoState != LottoState.OPEN) revert Lotto__IsNotOpen();

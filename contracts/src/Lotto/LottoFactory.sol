@@ -16,6 +16,7 @@ contract LottoFactory is VRFConsumerBaseV2Plus {
     // --- error ---
     error LottoFactory__OnlyLottoInstanceCanRequest();
     error LottoFactory__RequestNotFound();
+    error LottoFactory__EntryTokenNotAllowed(address entryToken);
 
     // --- state variables ---
     address public immutable i_implementation; // address of the logic contract
@@ -23,6 +24,7 @@ contract LottoFactory is VRFConsumerBaseV2Plus {
 
     mapping(address => bool) public isLottoInstance; // check if a Lotto instance is valid
     mapping(uint256 => address) public s_requestIdToLotto; // mapping of requestId to Lotto address
+    mapping(address => bool) public isAllowedEntryToken;
 
     // VRF configuration
     uint256 private s_subscriptionId;
@@ -36,6 +38,7 @@ contract LottoFactory is VRFConsumerBaseV2Plus {
     event LottoCreated(address indexed lottoAddress, address indexed creator);
     event RandomnessRequested(uint256 indexed requestId, address indexed lottoAddress);
     event RandomnessFulfilled(uint256 indexed requestId, uint256 randomness);
+    event EntryTokenAllowed(address indexed entryToken, bool allowed);
 
     constructor(
         address _implementation,
@@ -59,6 +62,8 @@ contract LottoFactory is VRFConsumerBaseV2Plus {
      * @param _entryToken ERC20 token used as entry/prize currency
      */
     function createLotto(uint256 _entryFee, uint256 _maxPlayers, address _entryToken) external returns (address) {
+        if (!isAllowedEntryToken[_entryToken]) revert LottoFactory__EntryTokenNotAllowed(_entryToken);
+
         // 1. Deploy minimal proxy contract
         address clone = Clones.clone(i_implementation);
 
@@ -98,6 +103,11 @@ contract LottoFactory is VRFConsumerBaseV2Plus {
         // 2. Map requestId to the calling Lotto instance
         s_requestIdToLotto[requestId] = msg.sender;
         emit RandomnessRequested(requestId, msg.sender);
+    }
+
+    function setAllowedEntryToken(address entryToken, bool allowed) external onlyOwner {
+        isAllowedEntryToken[entryToken] = allowed;
+        emit EntryTokenAllowed(entryToken, allowed);
     }
 
     /**
