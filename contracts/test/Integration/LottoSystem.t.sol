@@ -8,6 +8,7 @@ import {LottoFactory} from "../../src/Lotto/LottoFactory.sol";
 import {LottoImplementation} from "../../src/Lotto/LottoImplementation.sol";
 import {LottoEntryToken} from "../../src/Lotto/LottoEntryToken.sol";
 import {VRFCoordinatorV2_5Mock} from "@chainlink/contracts/src/v0.8/vrf/mocks/VRFCoordinatorV2_5Mock.sol";
+import {LottoPoolSolvency} from "../helpers/LottoPoolSolvency.sol";
 
 contract LottoSystemTest is Test {
     LottoFactory factory;
@@ -83,6 +84,8 @@ contract LottoSystemTest is Test {
         assertEq(uint256(clone.lottoState()), CLOSED); // CLOSED
         address winner = clone.winner();
         assertTrue(winner == player1 || winner == player2 || winner == player3);
+
+        _assertPoolSolvent(clone, _defaultParticipants());
     }
 
     function test_MultipleLottoInstances() external {
@@ -135,6 +138,12 @@ contract LottoSystemTest is Test {
         // verify balances
         assertEq(entryToken.balanceOf(address(lottoA)), ENTRY_FEE * 2);
         assertEq(entryToken.balanceOf(address(lottoB)), ENTRY_FEE * 4);
+
+        _assertPoolSolvent(lottoA, _defaultParticipants());
+        address[] memory lottoBPlayers = new address[](2);
+        lottoBPlayers[0] = player1;
+        lottoBPlayers[1] = player3;
+        _assertPoolSolvent(lottoB, lottoBPlayers);
     }
 
     function test_RefundFlow_WhenVrfCallbackStuck() external {
@@ -166,5 +175,22 @@ contract LottoSystemTest is Test {
         clone.claimRefund();
         uint256 afterBal = entryToken.balanceOf(player1);
         assertEq(afterBal - before, ENTRY_FEE);
+
+        _assertPoolSolvent(clone, _defaultParticipants());
+    }
+
+    function _defaultParticipants() internal view returns (address[] memory accounts) {
+        return _participants(player1, player2, player3);
+    }
+
+    function _participants(address a, address b, address c) internal pure returns (address[] memory accounts) {
+        accounts = new address[](3);
+        accounts[0] = a;
+        accounts[1] = b;
+        accounts[2] = c;
+    }
+
+    function _assertPoolSolvent(LottoImplementation lotto, address[] memory accounts) internal view {
+        LottoPoolSolvency.assertPoolSolvent(lotto, accounts);
     }
 }
