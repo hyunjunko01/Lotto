@@ -29,6 +29,7 @@ contract LottoPoolSolvencyInvariant is Test {
 
     uint256 internal constant ENTRY_FEE = 0.01 ether;
     uint256 internal constant MAX_PLAYERS = 3;
+    uint256 internal constant MAX_INSTANCES = 5;
     bytes32 internal constant KEY_HASH = 0x474e34a077df58807dbe9c96d3c009b23b3c6d0cce433e59bbf5b34f823bc56c;
     uint32 internal constant CALLBACK_GAS_LIMIT = 500000;
 
@@ -55,28 +56,37 @@ contract LottoPoolSolvencyInvariant is Test {
         joinPool[1] = player2;
         joinPool[2] = player3;
 
-        handler = new LottoHandler(factory, entryToken, vrfCoordinator, ENTRY_FEE, MAX_PLAYERS, joinPool);
+        handler = new LottoHandler(factory, entryToken, vrfCoordinator, ENTRY_FEE, MAX_PLAYERS, MAX_INSTANCES, joinPool);
         handler.createLotto();
 
         targetContract(address(handler));
-        bytes4[] memory selectors = new bytes4[](6);
+        bytes4[] memory selectors = new bytes4[](7);
         selectors[0] = LottoHandler.joinRandom.selector;
         selectors[1] = LottoHandler.requestWinner.selector;
         selectors[2] = LottoHandler.fulfillRandomness.selector;
         selectors[3] = LottoHandler.warpAndTriggerRefund.selector;
         selectors[4] = LottoHandler.claimRefundRandom.selector;
         selectors[5] = LottoHandler.withdrawPrizeAsWinner.selector;
+        selectors[6] = LottoHandler.createLottoInstance.selector;
         targetSelector(FuzzSelector({addr: address(handler), selectors: selectors}));
     }
 
     function invariant_poolSolvent() public view {
-        address[] memory accounts = handler.trackedAccounts();
-        LottoPoolSolvency.assertPoolSolvent(handler.lotto(), accounts);
+        uint256 count = handler.lottoCount();
+        for (uint256 i = 0; i < count; i++) {
+            LottoImplementation lotto = handler.lottoAt(i);
+            address[] memory accounts = handler.trackedAccountsFor(i);
+            LottoPoolSolvency.assertPoolSolvent(lotto, accounts);
+        }
     }
 
     function invariant_phaseSpecificObligations() public view {
-        address[] memory accounts = handler.trackedAccounts();
-        LottoPoolStateProperties.assertPhaseSpecificObligations(handler.lotto(), accounts);
+        uint256 count = handler.lottoCount();
+        for (uint256 i = 0; i < count; i++) {
+            LottoImplementation lotto = handler.lottoAt(i);
+            address[] memory accounts = handler.trackedAccountsFor(i);
+            LottoPoolStateProperties.assertPhaseSpecificObligations(lotto, accounts);
+        }
     }
 
     // Optional: uncomment after handler exposes more actions

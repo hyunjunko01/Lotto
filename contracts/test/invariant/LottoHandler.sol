@@ -16,23 +16,25 @@ import {LottoPoolSolvency} from "../helpers/LottoPoolSolvency.sol";
 contract LottoHandler is Test {
     LottoFactory public factory;
     LottoEntryToken public entryToken;
-    LottoImplementation public lotto;
     VRFCoordinatorV2_5Mock public vrfCoordinator;
 
     uint256 public entryFee;
     uint256 public maxPlayers;
+    uint256 public maxInstances;
 
     address[] public participants;
-    address[] internal _trackedAccounts;
     address[] internal _joinPool;
+    LottoImplementation[] internal _lottos;
+    mapping(uint256 lottoIndex => address[]) internal _trackedAccountsByLotto;
 
     uint256 public joinCount;
+    uint256 public createLottoCount;
     uint256 public requestWinnerCount;
     uint256 public fulfillCount;
     uint256 public triggerRefundCount;
     uint256 public claimRefundCount;
     uint256 public withdrawPrizeCount;
-    uint256 internal _lastScannedRequestId;
+    mapping(uint256 lottoIndex => uint256 lastScannedRequestId) internal _lastScannedRequestIdByLotto;
 
     constructor(
         LottoFactory _factory,
@@ -40,6 +42,7 @@ contract LottoHandler is Test {
         VRFCoordinatorV2_5Mock _vrfCoordinator,
         uint256 _entryFee,
         uint256 _maxPlayers,
+        uint256 _maxInstances,
         address[] memory joinPool
     ) {
         factory = _factory;
@@ -47,41 +50,54 @@ contract LottoHandler is Test {
         vrfCoordinator = _vrfCoordinator;
         entryFee = _entryFee;
         maxPlayers = _maxPlayers;
+        maxInstances = _maxInstances;
         _joinPool = joinPool;
     }
 
-    /// @notice Deploy a new lotto clone (call once from invariant `setUp` or as first handler step).
-    function createLotto() external {
+    /// @notice Deploy a new lotto clone up to `maxInstances`.
+    function createLottoInstance() public {
+        if (_lottos.length >= maxInstances) return;
         address clone = factory.createLotto(entryFee, maxPlayers, address(entryToken));
-        lotto = LottoImplementation(clone);
+        _lottos.push(LottoImplementation(clone));
+        createLottoCount++;
     }
 
-    /// @notice Join when OPEN; registers `player` for solvency accounting.
-    function join(address player) public {
-        _join(player);
+    /// @notice Backward-compatible alias.
+    function createLotto() external {
+        createLottoInstance();
     }
 
-    /// @notice Fuzz entrypoint: pick a funded player from `_joinPool`.
+    /// @notice Join a random lotto with a random funded participant from the join pool.
     function joinRandom(uint256 seed) external {
         if (_joinPool.length == 0) return;
-        _join(_joinPool[seed % _joinPool.length]);
+        uint256 lottoLen = _lottos.length;
+        if (lottoLen == 0) return;
+
+        uint256 lottoIndex = seed % lottoLen;
+        address player = _joinPool[(seed / lottoLen) % _joinPool.length];
+        _join(lottoIndex, player);
     }
 
-    /// @notice Request winner randomness once lotto reaches FULL.
-    function requestWinner() external {
-        if (address(lotto) == address(0)) return;
-        if (lotto.lottoState() != LottoImplementation.LottoState.FULL) return;
+    /// @notice Request winner randomness for a random lotto once it reaches FULL.
+    function requestWinner(uint256 seed) external {
+        uint256 lottoLen = _lottos.length;
+        if (lottoLen == 0) return;
+        LottoImplementation selectedLotto = _lottos[seed % lottoLen];
+        if (selectedLotto.lottoState() != LottoImplementation.LottoState.FULL) return;
 
-        lotto.requestWinner();
+        selectedLotto.requestWinner();
         requestWinnerCount++;
     }
 
-    /// @notice Fulfill the latest pending randomness request for this lotto.
-    function fulfillRandomness() external {
-        if (address(lotto) == address(0)) return;
-        if (lotto.lottoState() != LottoImplementation.LottoState.CALCULATING) return;
+    /// @notice Fulfill the latest pending randomness request for a random lotto.
+    function fulfillRandomness(uint256 seed) external {
+        uint256 lottoLen = _lottos.length;
+        if (lottoLen == 0) return;
+        uint256 lottoIndex = seed % lottoLen;
+        LottoImplementation selectedLotto = _lottos[lottoIndex];
+        if (selectedLotto.lottoState() != LottoImplementation.LottoState.CALCULATING) return;
 
-        uint256 requestId = _findPendingRequestId();
+        uint256 requestId = _findPendingRequestId(lottoIndex, selectedLotto);
         if (requestId == 0) return;
 
         vrfCoordinator.fulfillRandomWords(requestId, address(factory));
@@ -89,82 +105,114 @@ contract LottoHandler is Test {
     }
 
     /// @notice Move time forward and trigger refund mode once timeout elapsed.
-    function warpAndTriggerRefund() external {
-        if (address(lotto) == address(0)) return;
-        if (lotto.lottoState() != LottoImplementation.LottoState.CALCULATING) return;
+    function warpAndTriggerRefund(uint256 seed) external {
+        uint256 lottoLen = _lottos.length;
+        if (lottoLen == 0) return;
+        LottoImplementation selectedLotto = _lottos[seed % lottoLen];
+        if (selectedLotto.lottoState() != LottoImplementation.LottoState.CALCULATING) return;
 
-        vm.warp(block.timestamp + lotto.CALCULATING_TIMEOUT() + 1);
-        lotto.triggerRefundMode();
+        vm.warp(block.timestamp + selectedLotto.CALCULATING_TIMEOUT() + 1);
+        selectedLotto.triggerRefundMode();
         triggerRefundCount++;
     }
 
     /// @notice Claim refund for a tracked participant when REFUNDING.
     function claimRefundRandom(uint256 seed) external {
-        if (address(lotto) == address(0)) return;
-        if (lotto.lottoState() != LottoImplementation.LottoState.REFUNDING) return;
-        if (_trackedAccounts.length == 0) return;
+        uint256 lottoLen = _lottos.length;
+        if (lottoLen == 0) return;
+        uint256 lottoIndex = seed % lottoLen;
+        LottoImplementation selectedLotto = _lottos[lottoIndex];
+        if (selectedLotto.lottoState() != LottoImplementation.LottoState.REFUNDING) return;
+        address[] storage tracked = _trackedAccountsByLotto[lottoIndex];
+        if (tracked.length == 0) return;
 
-        address player = _trackedAccounts[seed % _trackedAccounts.length];
-        if (lotto.refundableAmount(player) == 0) return;
+        address player = tracked[(seed / lottoLen) % tracked.length];
+        if (selectedLotto.refundableAmount(player) == 0) return;
 
         vm.prank(player);
-        lotto.claimRefund();
+        selectedLotto.claimRefund();
         claimRefundCount++;
     }
 
     /// @notice Withdraw prize as current winner when CLOSED.
-    function withdrawPrizeAsWinner() external {
-        if (address(lotto) == address(0)) return;
-        if (lotto.lottoState() != LottoImplementation.LottoState.CLOSED) return;
-        if (lotto.isPrizeWithdrawn()) return;
+    function withdrawPrizeAsWinner(uint256 seed) external {
+        uint256 lottoLen = _lottos.length;
+        if (lottoLen == 0) return;
+        LottoImplementation selectedLotto = _lottos[seed % lottoLen];
+        if (selectedLotto.lottoState() != LottoImplementation.LottoState.CLOSED) return;
+        if (selectedLotto.isPrizeWithdrawn()) return;
 
-        address winner = lotto.winner();
+        address winner = selectedLotto.winner();
         if (winner == address(0)) return;
 
         vm.prank(winner);
-        lotto.withdrawPrize();
+        selectedLotto.withdrawPrize();
         withdrawPrizeCount++;
     }
 
-    function _join(address player) internal {
-        if (address(lotto) == address(0)) return;
-        if (lotto.lottoState() != LottoImplementation.LottoState.OPEN) return;
+    function _join(uint256 lottoIndex, address player) internal {
+        LottoImplementation selectedLotto = _lottos[lottoIndex];
+        if (selectedLotto.lottoState() != LottoImplementation.LottoState.OPEN) return;
 
-        _registerParticipant(player);
+        _registerParticipant(lottoIndex, player);
 
         vm.startPrank(player);
-        entryToken.approve(address(lotto), entryFee);
-        lotto.joinLotto();
+        entryToken.approve(address(selectedLotto), entryFee);
+        selectedLotto.joinLotto();
         vm.stopPrank();
 
         joinCount++;
     }
 
     function trackedAccounts() external view returns (address[] memory) {
-        return _trackedAccounts;
+        if (_lottos.length == 0) return new address[](0);
+        return _trackedAccountsByLotto[0];
+    }
+
+    function trackedAccountsFor(uint256 lottoIndex) external view returns (address[] memory) {
+        return _trackedAccountsByLotto[lottoIndex];
+    }
+
+    function lottoCount() external view returns (uint256) {
+        return _lottos.length;
+    }
+
+    function lottoAt(uint256 lottoIndex) external view returns (LottoImplementation) {
+        return _lottos[lottoIndex];
+    }
+
+    /// @notice Backward-compatible view for current invariant file shape.
+    function lotto() external view returns (LottoImplementation) {
+        if (_lottos.length == 0) revert("No lottos");
+        return _lottos[0];
     }
 
     function assertLottoSolvent() external view {
-        LottoPoolSolvency.assertPoolSolvent(lotto, _trackedAccounts);
+        uint256 count = _lottos.length;
+        for (uint256 i = 0; i < count; i++) {
+            LottoPoolSolvency.assertPoolSolvent(_lottos[i], _trackedAccountsByLotto[i]);
+        }
     }
 
-    function _registerParticipant(address player) internal {
+    function _registerParticipant(uint256 lottoIndex, address player) internal {
         participants.push(player);
 
-        uint256 len = _trackedAccounts.length;
+        address[] storage tracked = _trackedAccountsByLotto[lottoIndex];
+        uint256 len = tracked.length;
         for (uint256 i = 0; i < len; i++) {
-            if (_trackedAccounts[i] == player) {
+            if (tracked[i] == player) {
                 return;
             }
         }
-        _trackedAccounts.push(player);
+        tracked.push(player);
     }
 
-    function _findPendingRequestId() internal returns (uint256) {
-        uint256 maxScan = _lastScannedRequestId + 64;
-        for (uint256 requestId = _lastScannedRequestId + 1; requestId <= maxScan; requestId++) {
-            if (factory.s_requestIdToLotto(requestId) == address(lotto)) {
-                _lastScannedRequestId = requestId;
+    function _findPendingRequestId(uint256 lottoIndex, LottoImplementation lottoImpl) internal returns (uint256) {
+        uint256 last = _lastScannedRequestIdByLotto[lottoIndex];
+        uint256 maxScan = last + 64;
+        for (uint256 requestId = last + 1; requestId <= maxScan; requestId++) {
+            if (factory.s_requestIdToLotto(requestId) == address(lottoImpl)) {
+                _lastScannedRequestIdByLotto[lottoIndex] = requestId;
                 return requestId;
             }
         }
