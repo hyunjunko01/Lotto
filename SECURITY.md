@@ -86,7 +86,7 @@ External deps: OpenZeppelin, Chainlink VRF v2 Plus, EntryPoint v0.7 — pin via 
 
 | ID | Property | Status |
 |----|----------|--------|
-| I1 | No double payout (prize vs full refund) | `[TODO: explicit assertion]` |
+| I1 | No double payout (prize vs full refund) | **Implemented** (invariant + cross-path unit tests in `LottoImplementation.t.sol`) |
 | I2 | Pool solvency: `balance >= obligations` | **Implemented** (single + multi-instance) |
 | I3 | At most one VRF request per instance | **Implemented** (`isRandomnessRequested`) |
 | I4 | Only factory may finalize winner | **Implemented** |
@@ -98,16 +98,20 @@ External deps: OpenZeppelin, Chainlink VRF v2 Plus, EntryPoint v0.7 — pin via 
 ```bash
 forge test --root contracts
 forge test --root contracts --match-contract LottoPoolSolvencyInvariant
+forge test --root contracts --match-contract LottoNoDoublePayoutInvariant
 ```
 
 **Files:**
 
-- `contracts/test/invariant/LottoPoolSolvencyInvariant.t.sol`
+- `contracts/test/invariant/LottoInvariantSetup.sol` (shared handler harness)
+- `contracts/test/invariant/LottoPoolSolvencyInvariant.t.sol` (I2)
+- `contracts/test/invariant/LottoNoDoublePayoutInvariant.t.sol` (I1)
 - `contracts/test/invariant/LottoHandler.sol`
 - `contracts/test/helpers/LottoPoolSolvency.sol`
 - `contracts/test/helpers/LottoPoolStateProperties.sol`
+- `contracts/test/helpers/LottoNoDoublePayout.sol`
 
-**Not yet:** Slither in CI, explicit I1 test, production API rate-limit backend.
+**Not yet:** Slither in CI, production API rate-limit backend.
 
 ---
 
