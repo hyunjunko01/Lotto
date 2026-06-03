@@ -35,6 +35,8 @@ contract LottoHandler is Test {
     uint256 public claimRefundCount;
     uint256 public withdrawPrizeCount;
     mapping(uint256 lottoIndex => uint256 lastScannedRequestId) internal _lastScannedRequestIdByLotto;
+    mapping(uint256 lottoIndex => mapping(address account => bool settledByRefund)) internal _settledByRefund;
+    mapping(uint256 lottoIndex => mapping(address account => bool settledByPrize)) internal _settledByPrize;
 
     constructor(
         LottoFactory _factory,
@@ -131,6 +133,7 @@ contract LottoHandler is Test {
 
         vm.prank(player);
         selectedLotto.claimRefund();
+        _settledByRefund[lottoIndex][player] = true;
         claimRefundCount++;
     }
 
@@ -138,7 +141,8 @@ contract LottoHandler is Test {
     function withdrawPrizeAsWinner(uint256 seed) external {
         uint256 lottoLen = _lottos.length;
         if (lottoLen == 0) return;
-        LottoImplementation selectedLotto = _lottos[seed % lottoLen];
+        uint256 lottoIndex = seed % lottoLen;
+        LottoImplementation selectedLotto = _lottos[lottoIndex];
         if (selectedLotto.lottoState() != LottoImplementation.LottoState.CLOSED) return;
         if (selectedLotto.isPrizeWithdrawn()) return;
 
@@ -147,6 +151,7 @@ contract LottoHandler is Test {
 
         vm.prank(winner);
         selectedLotto.withdrawPrize();
+        _settledByPrize[lottoIndex][winner] = true;
         withdrawPrizeCount++;
     }
 
@@ -171,6 +176,14 @@ contract LottoHandler is Test {
 
     function trackedAccountsFor(uint256 lottoIndex) external view returns (address[] memory) {
         return _trackedAccountsByLotto[lottoIndex];
+    }
+
+    function settlementFlagsFor(uint256 lottoIndex, address account)
+        external
+        view
+        returns (bool settledByRefund, bool settledByPrize)
+    {
+        return (_settledByRefund[lottoIndex][account], _settledByPrize[lottoIndex][account]);
     }
 
     function lottoCount() external view returns (uint256) {

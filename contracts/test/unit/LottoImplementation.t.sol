@@ -277,6 +277,36 @@ contract LottoImplementationUnitTest is Test {
         lotto.withdrawPrize();
     }
 
+    // --- I1: prize vs refund path exclusivity (SECURITY.md) ---
+
+    function test_claimRefund_RevertAfterPrizeWithdrawn() external {
+        _makeLottoFull();
+        lotto.requestWinner();
+        vm.prank(address(factory));
+        lotto.finalizeWinner(0);
+
+        vm.prank(lotto.winner());
+        lotto.withdrawPrize();
+
+        vm.prank(lotto.winner());
+        vm.expectRevert(LottoImplementation.Lotto__IsNotRefunding.selector);
+        lotto.claimRefund();
+    }
+
+    function test_withdrawPrize_RevertAfterRefundClaimed() external {
+        _makeLottoFull();
+        lotto.requestWinner();
+        vm.warp(block.timestamp + lotto.CALCULATING_TIMEOUT() + 1);
+        lotto.triggerRefundMode();
+
+        vm.prank(player1);
+        lotto.claimRefund();
+
+        vm.prank(player1);
+        vm.expectRevert(LottoImplementation.Lotto__IsNotClosed.selector);
+        lotto.withdrawPrize();
+    }
+
     // --- helper functions ---
 
     function _makeLottoFull() internal {
