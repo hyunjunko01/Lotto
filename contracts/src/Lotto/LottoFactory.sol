@@ -121,11 +121,11 @@ contract LottoFactory is VRFConsumerBaseV2Plus {
 
         uint256 randomness = randomWords[0];
 
-        // Call the winner finalization function of the corresponding Lotto instance
+        delete s_requestIdToLotto[requestId];
+
         ILotto(lottoAddress).finalizeWinner(randomness);
 
         emit RandomnessFulfilled(requestId, randomness);
-        delete s_requestIdToLotto[requestId]; // Delete mapping to save gas
     }
 
     // --- Getter functions ---
