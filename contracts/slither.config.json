@@ -1,0 +1,4 @@
+{
+  "include_paths": "src",
+  "detectors_to_exclude": "naming-convention,solc-version,pragma,similar-names,incorrect-versions-of-solidity,divide-before-multiply,incorrect-exponentiation,missing-inheritance,immutable-states,unused-state-variable,too-many-digits,assembly"
+}
