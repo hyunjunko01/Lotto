@@ -130,7 +130,7 @@ contract LottoImplementation is Initializable, ReentrancyGuard {
         randomnessRequestedAt = block.timestamp;
 
         // Interactions
-        // Request VRF randomness from the factory
+        // slither-disable-next-line unused-return
         ILottoFactory(factory).requestWinnerRandomness();
 
         emit WinnerRequested();
