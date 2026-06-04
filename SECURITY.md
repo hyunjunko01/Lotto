@@ -111,6 +111,8 @@ forge test --root contracts --match-contract LottoNoDoublePayoutInvariant
 - `contracts/test/helpers/LottoPoolStateProperties.sol`
 - `contracts/test/helpers/LottoNoDoublePayout.sol`
 
+**Local static analysis:** From `contracts/`, run `./tools/slither.sh` (Python venv + `slither-analyzer`; see `requirements-dev.txt`). Scope: `src/` only via `slither.config.json` (`include_paths`). Baseline: no High/Medium on first-party code (2026-06); see `contracts/SLITHER.md`. (Foundry deploy scripts are in `script/`, not `tools/`.)
+
 **Not yet:** Slither in CI, production API rate-limit backend.
 
 ---
