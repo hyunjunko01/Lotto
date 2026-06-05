@@ -116,7 +116,7 @@ forge test --root contracts --match-path test/Integration/LottoSystem.t.sol
 forge test --root contracts --match-path test/Integration/LottoPaymaster.t.sol
 ```
 
-CI runs `forge fmt --check`, `forge build`, and `forge test` on push/PR.
+CI runs `forge build`, and `forge test` on push/PR.
 
 ## Local Contract Development
 
