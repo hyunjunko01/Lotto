@@ -17,7 +17,11 @@ pip install -r requirements-dev.txt
 ./tools/slither.sh 2>&1 | tee slither-baseline.txt
 ```
 
-Exit code `255` means informational findings were reported (normal for this repo).
+Exit code `255` means Slither failed the `--fail-*` threshold (on Unix, `sys.exit(-1)` wraps to `255`). With `--fail-medium`, that indicates a new **Medium** or **High** finding.
+
+**CI:** `.github/workflows/test.yml` runs `./tools/slither.sh --fail-medium`. Pass = exit `0` (no Medium/High in `src/`). Fail = exit `255` (new Medium/High).
+
+**Console vs JSON:** Terminal output labels all hits as `INFO:Detectors:`; check JSON (`--json`) or triage table below for real severity (`impact`).
 
 ## Scope
 
@@ -41,7 +45,8 @@ Slither reads **`slither.config.json`** (not `.slither.config.json`). Use `--inc
 | `reentrancy-vulnerabilities-1` on `fulfillRandomWords` | `LottoFactory` | **Fixed** — clear `s_requestIdToLotto` before `finalizeWinner` (CEI) |
 | `reentrancy-vulnerabilities-2/3` on `createLotto`, `requestWinnerRandomness`, `requestWinner` | Factory / Implementation | **Accepted** — clone `initialize` has no external calls; VRF is async; lotto clone is not reentrant |
 | `unused-return` on `requestWinnerRandomness()` | `LottoImplementation` | **Documented** — `slither-disable-next-line`; clone does not need `requestId` |
-| `arbitrary-send-eth` / `return-bomb` on `_payPrefund` | `EthAccount` | **Accepted** — EntryPoint prefund pattern |
+| `arbitrary-send-eth` on `_payPrefund` | `EthAccount` | **Accepted** — EntryPoint prefund; `slither-disable-next-line` |
+| `return-bomb` on `_payPrefund` | `EthAccount` | **Accepted** — EntryPoint prefund pattern (Low) |
 | `timestamp` on `claimTestTokens`, `triggerRefundMode` | Entry token / Lotto | **Accepted** — demo faucet cooldown; refund liveness timeout |
 | `missing-zero-check` on constructors / `initialize` | Several | **Accepted** — deploy-time configuration; testnet demo |
 | `modulo` / fairness | `finalizeWinner` | **Known (L2)** — tracked in `SECURITY.md` §5 |

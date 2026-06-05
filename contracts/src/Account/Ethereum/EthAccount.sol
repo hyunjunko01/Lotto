@@ -113,6 +113,7 @@ contract EthAccount is IAccount, Initializable, Ownable {
      */
     function _payPrefund(uint256 missingAccountFunds) internal {
         if (missingAccountFunds != 0) {
+            // slither-disable-next-line arbitrary-send-eth
             (bool success,) = payable(msg.sender).call{value: missingAccountFunds, gas: type(uint256).max}("");
             (success);
         }

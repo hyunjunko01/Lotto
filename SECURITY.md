@@ -113,7 +113,9 @@ forge test --root contracts --match-contract LottoNoDoublePayoutInvariant
 
 **Local static analysis:** From `contracts/`, run `./tools/slither.sh` (Python venv + `slither-analyzer`; see `requirements-dev.txt`). Scope: `src/` only via `slither.config.json` (`include_paths`). Baseline: no High/Medium on first-party code (2026-06); see `contracts/SLITHER.md`. (Foundry deploy scripts are in `script/`, not `tools/`.)
 
-**Not yet:** Slither in CI, production API rate-limit backend.
+**Not yet:** production API rate-limit backend.
+
+**CI:** Slither runs on every push/PR (`.github/workflows/test.yml`); fails on new Medium/High in `src/` (`--fail-medium`). Accepted High findings are suppressed in-source (`slither-disable-next-line`); see `contracts/SLITHER.md`.
 
 ---
 
