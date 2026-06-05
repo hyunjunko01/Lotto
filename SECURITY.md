@@ -137,17 +137,4 @@ From [README limitations](./README.md#scope-and-limitations). Link PR/issue when
 
 **Paymaster (v2 checks):** arbitrary `execute` targets blocked; deposit monitoring; remove demo selectors on prod; owner key policy `[TODO]`.
 
----
-
-## 6. Responsible disclosure
-
-**Do not** open public GitHub issues for exploitable vulnerabilities.
-
-| | |
-|---|---|
-| **Report to** | `[TODO: security@example.com]` |
-| **Ack** | `[TODO: e.g. 72h]` |
-| **In scope** | `[TODO: e.g. contracts/src/, production API routes]` |
-| **Out of scope** | `[TODO: e.g. third-party bundler, social engineering]` |
-
 Change history: use `git log` — this file tracks **current** posture and backlog, not a changelog.
