@@ -12,6 +12,27 @@ type AnchorLimits = {
     preVerificationGas: string;
 };
 
+/** AccountFactory.createAccount (~108k) + validateUserOp; bundler sim uses request cap. */
+export const DEPLOY_ACCOUNT_VERIFICATION_GAS_LIMIT = BigInt(500_000);
+
+export function needsAccountDeploymentFromInitCode(initCode?: string): boolean {
+    return Boolean(initCode && initCode !== '0x');
+}
+
+function withDeployAccountVerificationFloor(
+    limits: AnchorLimits,
+    needsAccountDeployment: boolean
+): AnchorLimits {
+    if (!needsAccountDeployment || limits.verificationGasLimit >= DEPLOY_ACCOUNT_VERIFICATION_GAS_LIMIT) {
+        return limits;
+    }
+
+    return {
+        ...limits,
+        verificationGasLimit: DEPLOY_ACCOUNT_VERIFICATION_GAS_LIMIT,
+    };
+}
+
 /**
  * Floors for `eth_estimateUserOperationGas` request only (not sent to bundler on Submit).
  * Caps must be high enough that simulation can run `createLotto` / heavy join calls;
@@ -70,9 +91,13 @@ function anchorLimitsForEstimate(mode: AALotteryMode, selectedJoinAction?: AAJoi
 export function createHashAnchorGas(
     mode: AALotteryMode,
     paymasterAddress?: string,
-    selectedJoinAction?: AAJoinAction
+    selectedJoinAction?: AAJoinAction,
+    initCode?: string
 ): UserOpGasEstimate {
-    const limits = anchorLimitsForEstimate(mode, selectedJoinAction);
+    const limits = withDeployAccountVerificationFloor(
+        anchorLimitsForEstimate(mode, selectedJoinAction),
+        needsAccountDeploymentFromInitCode(initCode)
+    );
     const accountGasLimits = packAccountGasLimits(limits.verificationGasLimit, limits.callGasLimit);
 
     const maxFeePerGas = BigInt(2e9);
@@ -104,10 +129,11 @@ export const ESTIMATE_REQUEST_PRE_VERIFICATION_GAS = '0';
 export function createEstimateRequestGas(
     mode: AALotteryMode,
     paymasterAddress?: string,
-    selectedJoinAction?: AAJoinAction
+    selectedJoinAction?: AAJoinAction,
+    initCode?: string
 ): UserOpGasEstimate {
     return {
-        ...createHashAnchorGas(mode, paymasterAddress, selectedJoinAction),
+        ...createHashAnchorGas(mode, paymasterAddress, selectedJoinAction, initCode),
         preVerificationGas: ESTIMATE_REQUEST_PRE_VERIFICATION_GAS,
     };
 }

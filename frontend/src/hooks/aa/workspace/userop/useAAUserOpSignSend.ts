@@ -101,7 +101,8 @@ export function useAAUserOpSignSend({
                 const estimateRequestGas = createEstimateRequestGas(
                     mode,
                     process.env.NEXT_PUBLIC_PAYMASTER_ADDRESS,
-                    action
+                    action,
+                    draft.initCode
                 );
                 const signature = await signUserOpHashForEstimate(
                     web3Provider,

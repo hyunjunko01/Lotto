@@ -83,7 +83,7 @@ export function useAAUserOpGas({
                 throw new Error('UserOp callData is missing for this action.');
             }
 
-            const hashAnchorGas = createEstimateRequestGas(mode, paymasterAddress, action);
+            const hashAnchorGas = createEstimateRequestGas(mode, paymasterAddress, action, initCode);
             const estimatorParams = {
                 mode,
                 selectedJoinAction: action,
